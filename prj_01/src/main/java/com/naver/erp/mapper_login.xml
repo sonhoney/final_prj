@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.naver.erp.LoginDAO">
+
+    <!-- 로그인 정보가 맞나 안맞나 먼저 체크  -->
+	<select id="getLoginCheck" parameterType="hashmap" resultType="int">
+	
+			select count(*) from employee where emp_no = ${uid} and emp_pwd = #{pwd}
+	
+	</select>
+
+   <!-- 비번 찾기 전에 해당 아이디가 존재하는지 체크   -->
+	<select id="exId" parameterType="hashmap" resultType="int">
+	
+			select count(*) from employee where emp_no = ${uid} 
+	
+	</select>
+    
+    <!-- 아이디가 존재하면 그의 암호를 가져오기  -->
+	<select id="getPwd" parameterType="hashmap" resultType="String">
+	
+			select emp_pwd from employee where emp_no = ${uid} 
+	
+	</select>
+
+ 
+    <!--  암호 변경 전에 먼저 실존한 아이디 암호 인지 판별   -->
+	<select id="getconfirmCnt" parameterType="hashmap" resultType="int">
+	
+			select count(*) from employee where emp_no = ${uid} and emp_pwd = #{pwd}
+	
+	</select>
+	
+	<!-- 기존에 회원이 맞다면 암호 변경 레즈고  -->
+	<update id="getChangeCnt" parameterType="hashmap" >
+	
+            update employee set emp_pwd = #{new_pwd} where emp_no = ${uid}	
+	
+	</update>
+    
+    <!-- 로그인 시 회원이름 챙겨서 세션에 박으려고 연동중. -->
+	<select id="getName" parameterType="hashmap" resultType="String">
+	
+			select emp_name from employee where emp_no = ${uid}
+	
+	</select>
+    
+    <!-- 아이디를 찾기 위해 챙겨온 암호로 셀렉 때리는 쿼리  -->
+	<select id="getId" parameterType="hashmap" resultType="String">
+	
+			select emp_no from employee where emp_pwd = #{pwd} and jumin_num = #{juminF}||#{juminB}
+	
+	</select>
+	
+	    <!-- 아이디 찾기전에 존재하는 아이디인지 암호가지고 셀렉 때리는 쿼리  -->
+	<select id="exPwd" parameterType="hashmap" resultType="int">
+	
+			select count(*) from employee where emp_pwd = #{pwd} and jumin_num = #{juminF}||#{juminB}
+	
+	</select>
+    
+	<!-- 로그인한 유저의 emp_role 체크 -->
+	<select id="getEmp_role" parameterType="hashmap" resultType="String">
+	
+			select emp_role from employee where emp_no = ${uid}
+	
+	</select>
+
+	<select id="getAllowCode" parameterType="String" resultType="String">
+	
+			select
+      
+					a.allow_name  
+				
+				from employee  e, code_allow a
+				where
+					e.allow_code = a.allow_code    
+					and
+					e.emp_no= ${emp_no}
+	
+	</select>
+
+	<select id="getjikupName" parameterType="String" resultType="String">
+	
+			select
+					j.jikup_name              "jikup_name"
+				from employee  e, CODE_JIKUP j
+
+				where
+					e.JIKUP_CODE = j.JIKUP_CODE
+					and
+					e.emp_no = ${emp_no}
+	
+	</select>
+
+</mapper>
+

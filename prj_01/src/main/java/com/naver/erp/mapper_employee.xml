@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--***************************************************-->
+<!-- mapper 태그 선언하기 -->
+<!-- mapper 태그 안의 namespace 값은 [원하는 인터페이스 저장 패키지 경로]하고 일치해야한다. -->
+<!--<mapper namespace="com.naver.erp.MypageDAO">  -->
+
+<!--***************************************************-->
+ <mapper namespace="com.naver.erp.EmployeeDAO">
+ 
+ 
+
+<sql id="empSearchWhere">
+   	1=1
+			
+			
+			 <if test="keyword!=null and keyword.length()>0">
+				
+				and(
+					upper(e1.emp_no) like upper('%${keyword}%')
+					or
+					upper(e1.emp_name) like upper('%${keyword}%')
+					or
+					upper(e1.mgr_emp_no) like upper('%${keyword}%')
+					or
+					upper(e2.emp_name) like upper('%${keyword}%')
+					
+					)
+				
+			</if>
+			
+			<if test="jikupSearch!=null">
+		and(
+		
+			upper(e1.jikup_code) like upper('%${jikupSearch}%')
+		
+			)
+	</if>	
+	<if test="depSearch!=null">
+		and(
+		
+			upper(e1.dep_no) like upper('%${depSearch}%')
+		
+		)
+	</if>
+			
+			
+	
+ </sql>
+ 
+ 
+ <!-- 
+ 예전에 없앤 직원검색 리스트 페이지
+ <select id="getEmpList" resultType="java.util.HashMap">
+		
+		
+select * from (select rownum RNUM, zxcvb.* from (
+		select
+		    e1.emp_no        "emp_no"
+		    ,e1.emp_name     "emp_name"
+		    ,j.jikup_name   "jikup_name"
+		    ,d.dep_name     "dep_name"
+		    ,e1.mgr_emp_no   "mgr_emp_no"
+		    ,e2.emp_name     "emp_name2"
+		    ,e1.phone_num    "phone_num"
+		from
+		    employee e1, employee e2, code_dept d, code_jikup j
+		where
+		    e1.dep_no=d.dep_no 
+		    and
+		    e1.mgr_emp_no=e2.emp_no
+		    and
+		    e1.jikup_code=j.jikup_code
+		    
+) zxcvb) where RNUM&gt;=1 and RNUM&lt;=10	
+
+order by RNUM desc    
+		
+	</select> -->
+ 
+	
+<select id="getEmpList" parameterType="com.naver.erp.EmployeeSearchDTO" resultType="java.util.HashMap">
+		
+		
+select * from (select rownum RNUM, zxcvb.* from (
+		select
+		    e1.emp_no        "emp_no"
+		    ,e1.emp_name     "emp_name"
+		    ,j.jikup_name   "jikup_name"
+		    ,d.dep_name     "dep_name"
+		    ,e1.mgr_emp_no   "mgr_emp_no"
+		    ,e2.emp_name     "emp_name2"
+		    ,REGEXP_REPLACE(e1.phone_num, '(.{3})(.*)(.{4})', '\1-\2-\3')    "phone_num"   
+		    ,a.allow_name	 "allow_name"
+		    ,e1.hire_date	"hire_date"
+		    ,e1.emp_pwd		"emp_pwd"
+		from
+		    employee e1, employee e2, code_dept d, code_jikup j, code_allow a
+		where
+		    e1.dep_no=d.dep_no 
+		    and
+		    e1.mgr_emp_no=e2.emp_no
+		    and
+		    e1.jikup_code=j.jikup_code
+		    and
+		    e1.allow_code=a.allow_code
+		    and
+		    <include refid="empSearchWhere">
+			</include>
+		   
+		   
+		   <!--  -->
+		
+		
+		<if test="sort==null or sort.length()==0" >
+			order by e1.hire_date desc
+		</if>
+								
+		<if test="sort!=null and sort.length()>0" >
+			order by ${sort}
+		</if>
+		    
+<![CDATA[
+			) zxcvb) where  RNUM  >= #{begin_rowNo}  and RNUM <= #{end_rowNo}
+		]]>
+		
+		
+   
+		 
+	</select>
+	
+	
+<!--*************************************************************  java.util.HashMap -->
+<!-- 게시판 1개 글 검색하는 select 문을 내포한 select 태그 선언-->
+<!--*************************************************************-->
+<select id="getEmployee" parameterType="int" resultType="com.naver.erp.EmployeeDTO">
+
+
+select
+		    
+		    e1.emp_name     "emp_name"
+		    ,e1.emp_no        "emp_no"
+		    ,e1.emp_pwd		"emp_pwd"
+		    ,e1.jumin_num	"jumin_num"
+		    ,e1.email 		"email"
+		    ,e1.emp_role	"emp_role"
+		    ,d.dep_name     "dep_name"
+		    ,j.jikup_name   "jikup_name"
+		    ,e2.emp_name     "emp_name2"
+		    ,e1.phone_num    "phone_num"
+		    ,a.allow_name	 "allow_name"
+		    ,e1.allow_code "allow_code"
+		   	,e1.dep_no		"dep_no"
+		   	,e1.jikup_code	"jikup_code"
+		  	,e1.mgr_emp_no "mgr_emp_no"	 
+		  	<!-- ,e1.emp_pwd		"emp_pwd2" -->
+		  	
+		  	
+		from
+		    employee e1, employee e2, code_dept d, code_jikup j, code_allow a
+		where
+		    e1.dep_no=d.dep_no
+		    and
+		    e1.mgr_emp_no=e2.emp_no
+		    and
+		    e1.jikup_code=j.jikup_code
+		    and
+		    e1.allow_code=a.allow_code
+		   	and
+		   	e1.emp_no=#{emp_no}
+		  
+
+</select>	
+
+
+
+	<!-- *********************************************** -->
+	<!-- 검색된 게시판 글 목록 총 개수를 구하는 select문이 내포된 select 태그 선언 -->
+	<!-- *********************************************** -->
+	<select id="getEmpListTotCnt" parameterType="com.naver.erp.EmployeeSearchDTO" resultType="int">
+	
+		 select 
+			count(*)
+		from 
+			(
+		select
+		    e1.emp_no        "emp_no"
+		    ,e1.emp_name     "emp_name"
+		    ,j.jikup_name   "jikup_name"
+		    ,d.dep_name     "dep_name"
+		    ,e1.mgr_emp_no   "mgr_emp_no"
+		    ,e2.emp_name     "emp_name2"
+		    ,e1.phone_num    "phone_num"
+		    ,a.allow_name	 "allow_name"
+		    ,e1.hire_date	"hire_date"
+		    ,e1.emp_pwd		"emp_pwd"
+		    ,e1.dep_no 	"dep_no"
+		from
+		    employee e1, employee e2, code_dept d, code_jikup j, code_allow a
+		where
+		    e1.dep_no=d.dep_no 
+		    and
+		    e1.mgr_emp_no=e2.emp_no
+		    and
+		    e1.jikup_code=j.jikup_code
+		    and
+		    e1.allow_code=a.allow_code
+		    and
+		    <include refid="empSearchWhere">
+			</include>
+		   
+		)    
+				
+		where
+			1=1
+			<!-- ================================== -->
+			<!-- <sql id="boardWhere"> 태그 안에 삽입된 SQL구문 삽입하기 -->
+			<!-- ================================== -->
+			
+			
+					
+	</select>
+	
+
+	<!-- *********************************************** -->
+	<!-- 게시판 글 목록 총 개수 구하는 select문이 내포된 select 태그 선언 -->
+	<!-- *********************************************** -->
+	<select id="getEmpListAllTotCnt" resultType="int">
+	
+		select 
+			count(*)
+		from 
+			( select 
+			count(*)
+		from 
+			(
+		select
+		    e1.emp_no        "emp_no"
+		    ,e1.emp_name     "emp_name"
+		    ,j.jikup_name   "jikup_name"
+		    ,d.dep_name     "dep_name"
+		    ,e1.mgr_emp_no   "mgr_emp_no"
+		    ,e2.emp_name     "emp_name2"
+		    ,e1.phone_num    "phone_num"
+		    ,a.allow_name	 "allow_name"
+		    ,e1.hire_date	"hire_date"
+		    ,e1.emp_pwd		"emp_pwd"
+		    ,e1.dep_no 	"dep_no"
+		from
+		    employee e1, employee e2, code_dept d, code_jikup j, code_allow a
+		where
+		    e1.dep_no=d.dep_no 
+		    and
+		    e1.mgr_emp_no=e2.emp_no
+		    and
+		    e1.jikup_code=j.jikup_code
+		    and
+		    e1.allow_code=a.allow_code)
+		    )
+				
+		
+			
+					
+	</select>
+
+
+
+
+
+	<!--***************************************************-->
+	<!-- 게시판 글 입력하는 insert 문을 내포한 insert 태그 선언 -->
+	<!--***************************************************-->
+	<insert id="insertEmp" parameterType="com.naver.erp.EmployeeDTO" >
+		insert  into employee(
+			 emp_name     
+		    ,emp_no        
+		    ,emp_pwd		
+		    ,jumin_num		
+		    ,emp_role	
+		    ,email 			
+		    ,dep_no     	
+		    ,phone_num    
+		    ,allow_code		
+		    ,jikup_code		
+		    ,mgr_emp_no		
+			
+		)
+		values
+		(
+			#{emp_name}     
+		    ,${emp_no}       
+		    ,#{emp_pwd}		
+		    ,#{jumin_num}		
+		    ,'user'	
+		    ,#{email} 			
+		    ,${dep_no}     	
+		    ,#{phone_num}    
+		    ,2
+		    ,${jikup_code}		
+		    ,(select nvl(min(mgr_emp_no),0) from employee)		
+			
+			
+			
+		)
+	</insert>
+
+
+	<!-- **************************************************** -->
+	<!-- 삭제/수정할 게시판의 존재 개수를 리턴하는 select 을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="getEmpCnt" parameterType="int"  resultType="int">
+	<!-- 	select * from (select rownum RNUM, zxcvb.* from (
+	 -->
+		
+		select 
+			count(*) 
+		from
+			employee
+		where 
+			emp_no=#{emp_no} 
+	
+	<!-- 	) zxcvb) where RNUM&gt;=1 and RNUM&lt;=10	    
+	 -->
+	
+	</select>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 수정하는 update 을 내포하는 update 태그 선언 -->
+	<!-- **************************************************** -->
+	<update id="updateEmp"  parameterType="com.naver.erp.EmployeeDTO" >
+		
+		update
+			employee
+		set
+			
+		    emp_no=#{emp_no}
+		    ,emp_name=#{emp_name}
+		    ,email = #{email}
+			,emp_role = #{emp_role}
+			,dep_no = #{dep_no}
+			,jikup_code = #{jikup_code}
+			,jumin_num = #{jumin_num}
+			,allow_code = #{allow_code}
+			,phone_num = #{phone_num}
+			,mgr_emp_no=#{mgr_emp_no}
+			,emp_pwd = #{emp_pwd}
+			
+			
+			
+
+			
+		where
+		  emp_no=#{emp_no} 
+		
+			
+		
+	</update>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 삭제하는 delete 구문을 내포하는 delete 태그 선언 -->
+	<!-- **************************************************** -->
+	<delete id="deleteEmp"  parameterType="com.naver.erp.EmployeeDTO" >
+		delete
+		from
+			employee
+		where
+			emp_no=#{emp_no}
+	</delete>
+
+
+
+	<select id="getMgrList" parameterType="com.naver.erp.EmployeeDTO" resultType="java.util.HashMap">
+		
+	 select
+      
+              emp_no||''                                "mgr_emp_no" 
+               ,j.jikup_name||' '||e.emp_name          "mgr_name"
+      from 
+      		employee e,code_jikup j
+
+      where
+    
+            j.jikup_code=e.jikup_code
+            and
+            e.dep_no = #{dep_no}
+            and
+            e.jikup_code  &lt; #{jikup_code}
+   
+		 
+	</select>
+
+	<!-- **************************************************** -->
+	<!-- 사번 중복체크 select 구문을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="check_emp_no"  parameterType="com.naver.erp.EmployeeDTO" resultType="int">
+		select
+			count(emp_no)
+		from
+			employee
+		where
+			emp_no=#{emp_no}
+	</select>
+
+
+
+	
+</mapper>
+		
+
+
+
+
+

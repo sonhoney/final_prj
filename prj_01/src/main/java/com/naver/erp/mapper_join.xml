@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.naver.erp.JoinDAO">
+
+  <insert id="getJoinCnt" parameterType="com.naver.erp.JoinDTO"> 
+  
+       insert into employee
+       (
+       		emp_no
+       		,emp_name
+       		,emp_pwd
+       		,jikup_code
+       		,email
+       		,mgr_emp_no
+       		,dep_no
+       		,jumin_num
+       		,phone_num
+       		,allow_code 
+       		,emp_role     		
+       )
+       values
+       (
+       		(select nvl(max(emp_no),0)+1 from employee where emp_no  &lt;  9999 )    
+       		,#{uname}
+       		,#{pwd}
+       		,(select jikup_code from code_jikup where jikup_code='6')
+       		,#{email}
+       		
+       		
+       		<if test="domain == null or domain.length() == 0">
+       		 	||#{domain2}
+       		</if>
+       		<if test="domain2 == null or domain2.length() == 0">
+       		    ||#{domain}
+       		</if>
+       		
+       		
+       		,0
+       		,#{affiliation_dept}
+       		,#{front_jumin_num}||#{back_jumin_num}
+       		,#{tel_num1}||#{tel_num2}||#{tel_num3}
+       		,2 
+       		,'user'
+       )
+       
+       <!-- 
+           회원가입 시 insert 하는 구문인데 , 
+           여기서 직급번호 를 디폴트값이 없으니 서브쿼리로 따로 지정해서 넣는 거랑
+           직속 상관번호 또한 서브쿼리나 그냥 데이터를 지정해서 넣는게 
+           쪼매 부자연스러운것 같아서 
+           이 둘도 디폴트를 따로 주거나 아니면 회원가입 시 
+           선택하게 하는 것도 좋을 듯.       
+        -->
+       
+  </insert>
+
+
+
+  <select id="getId" parameterType="com.naver.erp.JoinDTO" resultType="String">
+  
+  	select emp_no from employee where jumin_num = #{front_jumin_num}||#{back_jumin_num}
+  
+  </select>       
+
+  <select id="overlapCheck" parameterType="com.naver.erp.JoinDTO" resultType="int">
+  
+  	select count(*) from employee where jumin_num = #{front_jumin_num}||#{back_jumin_num}
+  
+  </select>
+
+
+
+</mapper>
+

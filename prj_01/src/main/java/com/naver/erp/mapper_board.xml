@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--***************************************************-->
+<!-- mapper 태그 선언하기 -->
+<!-- mapper 태그 안의 namespace 값은 [원하는 인터페이스 저장 패키지 경로]하고 일치해야한다. -->
+<!--***************************************************  -->
+<mapper namespace="com.naver.erp.BoardDAO">
+
+	<!--***************************************************-->
+	<!-- 게시판 글 목록 구할 떄 사용할 where 절을 sql 태그 안에 선언하기 -->
+	<!--***************************************************-->
+	<sql id="boardWhere">					
+					
+					1=1
+					<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+						and (
+					</if>
+					<if test="keyword1!=null and keyword1.length()>0">
+							(
+								upper(subject) like upper('%${keyword1}%')
+								or
+								upper(content) like upper('%${keyword1}%')
+								
+							)
+					</if>
+					<if test="(keyword1!=null and keyword1.length()>0) and (keyword2!=null and keyword2.length()>0)">
+						${orAnd}
+					</if>
+							
+					<if test="keyword2!=null and keyword2.length()>0">
+							(
+								upper(subject) like upper('%${keyword2}%')
+								or
+								upper(content) like upper('%${keyword2}%')
+								
+							)
+					</if>
+					<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+						)
+					</if>
+					<if test="date!=null">
+						<foreach collection="date" item="xxx" open="and (" close=")" separator=" or ">
+							to_char(
+								sysdate ${xxx}   
+								,'YYYYMMDD'
+							)=to_char(reg_date,'YYYYMMDD')
+						</foreach>
+					</if>
+			</sql>
+	<select id="getBoardList"  parameterType="com.naver.erp.BoardSearchDTO" resultType="java.util.HashMap">
+		select * from ( select  rownum RNUM, zxcvb.* from  (
+							select  
+								b_no||''                               as "b_no"
+								,subject                               as "subject"
+								,writer                                as "writer"
+								,readcount||''                         as "readcount"
+								,to_char( reg_date,'YYYY-MM-DD')       as "reg_date"
+								
+							from 
+								board		
+							where
+								
+								<!--=============================-->
+								<!--<sql id="boardWhere"> 태그 안에 삽입된 SQL 구문 삽입하기-->
+								<!--=============================-->
+								<include refid="boardWhere"/>
+							<if test="sort==null or sort.length()==0" >
+								order by
+									b_no desc 
+							</if>	
+							
+							<if test="sort!=null and sort.length()>0" >
+								order by ${sort}
+							</if>
+			
+		<![CDATA[
+			) zxcvb) where  RNUM  >= #{begin_rowNo}  and RNUM <= #{end_rowNo}
+		]]>
+	</select>
+
+	<!-- **************************************************** -->
+	<!-- 검색된 게시판 글 목록 총 개수 구하는 select 구문이 내포된  select 태그 선언-->
+	<!-- **************************************************** -->
+	<select id="getBoardListTotCnt" parameterType="com.naver.erp.BoardSearchDTO"  resultType="int">
+			select  
+				count(*)
+			from 
+				board		
+			where
+				<!--=============================-->
+				<!--<sql id="boardWhere"> 태그 안에 삽입된 SQL 구문 삽입하기-->
+				<!--=============================-->
+				<include refid="boardWhere"/>
+				
+	</select>
+	<!-- **************************************************** -->
+	<!-- 게시판 글 목록 총 개수 구하는 select 구문이 내포된  select 태그 선언-->
+	<!-- **************************************************** -->
+	<select id="getBoardListAllTotCnt" resultType="int">
+			select  
+				count(*)
+			from 
+				board		
+	</select>
+	<!--***************************************************-->
+	<!-- 게시판 글 입력하는 insert 문을 내포한 insert 태그 선언 -->
+	<!--***************************************************-->
+	<insert id="insertBoard" parameterType="com.naver.erp.BoardDTO">
+		insert into board(
+			b_no
+			,subject			
+			,readcount
+			,content
+			
+		)
+		values
+		(
+			(select nvl(max(b_no),0)+1 from board)
+			,#{subject}			
+			,0
+			,#{content}
+			
+		)
+	</insert>
+
+
+	<!-- **************************************************** -->
+	<!-- 조회수 1증가하는 즉 수정하는 update 문을 내포한 update 태그 선언 -->
+	<!-- **************************************************** -->
+	<update id="updateReadcount" parameterType="int">
+		update 
+			board
+		set
+			readcount = readcount+1
+		where 
+			b_no=#{b_no}
+	</update>
+	
+	<!--*************************************************************  java.util.HashMap -->
+	<!-- 게시판 1개 글 검색하는 select 문을 내포한 select 태그 선언-->
+	<!--*************************************************************-->
+	<select id="getBoard" parameterType="int" resultType="com.naver.erp.BoardDTO">
+		select 
+			b_no		  "b_no"
+			,subject 	  "subject"
+			,writer 	  "writer"
+			,reg_date     "reg_date" 
+			,readcount    "readcount"
+			,to_char(content) 	  "content"
+			
+			
+		from 
+			board 
+		where
+			b_no=#{b_no}
+	</select>
+	<!-- **************************************************** -->
+	<!-- 삭제/수정할 게시판의 존재 개수를 리턴하는 select 을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="getBoardCnt" parameterType="int"  resultType="int">
+		select count(*) from board where b_no=#{b_no} 
+	</select>
+	
+	
+	<!-- **************************************************** -->
+	<!-- 삭제/수정할 게시판의 비밀번호 개수를 리턴하는 select 을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="getBoardPwdCnt" parameterType="com.naver.erp.BoardDTO" resultType="int">
+		select count(*) from board where b_no=#{b_no}
+	</select>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 수정하는 update 을 내포하는 update 태그 선언 -->
+	<!-- **************************************************** -->
+	<update id="updateBoard"  parameterType="com.naver.erp.BoardDTO" >
+		update
+			board
+		set
+			subject = #{subject}
+			
+			,content = #{content}
+			
+		where
+			b_no=#{b_no}
+	</update>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 삭제하는 delete 구문을 내포하는 delete 태그 선언 -->
+	<!-- **************************************************** -->
+	<delete id="deleteBoard"  parameterType="com.naver.erp.BoardDTO" >
+		delete
+		from
+			board
+		where
+			b_no=#{b_no}
+	</delete>
+	
+	
+
+</mapper>

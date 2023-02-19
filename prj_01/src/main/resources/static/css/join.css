@@ -1,0 +1,229 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css");
+@import url("https://cdn.rawgit.com/moonspam/NanumSquare/master/nanumsquare.css");
+/* reset.css */
+@import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+html, body, div, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, address, dl, dt, dd, ol, ul, li, fieldset, form, legend, table, caption, tbody, tfoot, thead, tr, th, td, input, select, textarea {
+  margin: 0;
+  padding: 0; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: 100%; }
+
+img, fieldset {
+  border: 0px; }
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0; }
+
+ul, ol, li {
+  list-style: none; }
+
+address, em {
+  font-style: normal; }
+
+li img, object {
+  vertical-align: top; }
+
+input, select, textarea {
+  vertical-align: middle; }
+
+a {
+  outline: 0;
+  text-decoration: none;
+  border: none;
+  color: #444; }
+
+body {
+  font-size: 16px;
+  font-family: 'NanumSquare', sans-serif;
+  color: #444;
+  padding-top : 8%;
+   }
+
+.noMargin {
+  margin: 0px; }
+
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box; }
+
+header, section, footer, aside, nav, main, article, figure {
+  display: block; }
+
+.float_clear:after {
+  content: '';
+  display: block;
+  clear: both; }
+
+.hidden {
+  display: none; }
+
+.blind {
+  display: block;
+  text-indent: -2000px;
+  overflow: hidden; }
+
+/* space */
+/* 16px base */
+/* line hieght */
+/* onback_cup */
+/* onback_detail */
+/* font size */
+/* line height */
+body {
+  background: #FFF1E9; }
+
+#header {
+  width: 530px;
+  margin: 0 auto;
+  padding-bottom:50px;
+   }
+#header a{
+	margin: 0 auto;	
+	display : block;
+}
+#header a img{
+	margin : 0 auto;
+	display : block;
+}
+#section1 {
+
+  width: 530px;
+  margin: 0 auto; }
+  #section1 button {
+    cursor: pointer; }
+  #section1 .section1_information {
+    width: 530px; }
+    #section1 .section1_information  {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%; }
+      #section1 .section1_information  .uname, #section1 .section1_information  .pwd, #section1 .section1_information  .pwd_confirm{
+        width: 530px;
+        height: 43px;
+        margin-bottom: 1%; 
+		
+        }
+        #section1 .section1_information  .affiliation_dept{
+        width: 530px;
+        height: 43px;
+        margin-bottom: 1%; 
+		text-align:center;
+        }
+      #section1 .section1_information  .front_jumin_num,#section1 .section1_information  .back_jumin_num{
+      	width: 257px;
+        height: 43px;
+        margin-bottom: 1%;
+      }
+      #section1 .section1_information  .email,#section1 .section1_information  .domain2{
+      	width: 210px;
+        height: 43px;
+        margin-bottom: 1%;
+      }
+      #section1 .section1_information  .domain{
+      	width: 210px;
+        height: 43px;
+        margin-bottom: 1%;
+        text-align:center;
+      }
+      
+      #section1 .section1_information  .tel_num2, #section1 .section1_information  .tel_num3{
+      	width: 166px;
+        height: 43px;
+        margin-bottom: 1%;
+      }
+      #section1 .section1_information  .tel_num1{
+      	width: 166px;
+        height: 43px;
+        margin-bottom: 1%;
+        text-align:center;
+      }
+      #section1 .section1_information  input {
+        padding: 3% 4%; }
+      #section1 .section1_information .writeDomain{
+      	width: 100px;
+        height: 43px;            
+    	background: #ff7a58;
+    	color: #fff; 
+    	text-align:center;  
+    	line-height:10px; 	
+      }
+      #section1 .section1_information .choiceDomain{
+      	width: 100px;
+        height: 43px;      
+    	background: #fff;
+    	color: #ff7a58;   	
+    	border: 1px solid #ff7a58;
+    	text-align:center;
+    	line-height:10px;
+      }
+  #section1 .section1_check {
+    margin-top: 3%;
+    padding: 3%;
+    background: #fff; }
+    #section1 .section1_check input[type=checkbox] + label {
+      display: inline-block;
+      width: 19px;
+      height: 19px;
+      background: url(../img/join/section_check.png) no-repeat; }
+    #section1 .section1_check input[type=checkbox]:checked + label {
+      background: url(../img/join/section_check_click.png) no-repeat; }
+    #section1 .section1_check input[type=checkbox] {
+      display: none; }
+    #section1 .section1_check span {
+      color: #747171; }
+    #section1 .section1_check img {
+      margin-right: 1%; }
+    #section1 .section1_check ul {
+      padding-left: 5%;
+      border-top: 1px solid #e8e5e5; }
+      #section1 .section1_check ul li {
+        margin-top: 3%;
+        color: #4a4949; }
+  #section1 .section1_btn {
+    display: flex;
+    justify-content: space-around;
+    width: 530px;
+    margin-top: 5%; }
+    #section1 .section1_btn .joinBtn, #section1 .section1_btn .loginBtn, #section1 .section1_btn .reset {
+      width: 173px;
+      height: 46px;
+      border-radius: 3px;
+      background: #ff7a58;
+      color: #fff;
+      text-align: center;
+      line-height: 46px; }
+
+@media screen and (max-width: 414px) {
+  #section1 {
+    margin-left: -173px;
+    width: 346px; }
+    #section1 button {
+      cursor: pointer; }
+    #section1 .section1_information {
+      width: 346px; }
+      #section1 .section1_information .form {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%; }
+        #section1 .section1_information .form .id, #section1 .section1_information .form .pw1, #section1 .section1_information .form .pw2, #section1 .section1_information .form .email, #section1 .section1_information .form .name {
+          width: 346px; }
+        #section1 .section1_information .form input {
+          padding: 3% 4%; }
+        #section1 .section1_information .form .day {
+          width: 170px; }
+        #section1 .section1_information .form .men {
+          width: 80px; }
+        #section1 .section1_information .form .women {
+          width: 80px; }
+    #section1 .section1_btn {
+      width: 346px; }
+      #section1 .section1_btn .join, #section1 .section1_btn .cancle {
+        width: 140px; } }
+
+/*# sourceMappingURL=join.css.map */

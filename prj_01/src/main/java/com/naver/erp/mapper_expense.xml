@@ -1,0 +1,804 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.naver.erp.ExpenseDAO">
+	<insert id="first_insertExpenseReport" parameterType="com.naver.erp.ExpenseDTO">
+	    insert into expense_report(
+            report_no
+            ,report_code
+            ,report_name
+            ,expense_field_code
+            ,expense_price
+            ,expense_method_code
+            ,expense_date
+            ,receipt_no
+            ,remarks
+            ,emp_no
+        )values(
+            (select nvl(max(report_no),0)+1 from expense_report)
+            ,3
+            ,#{report_name} 
+            ,#{expense_field_code}  
+            ,#{expense_price} 
+            ,#{expense_method_code} 
+            ,to_date(#{expense_date},'YYYY-MM-DD')
+            ,#{receipt_no}
+            ,#{remarks}
+            ,#{emp_no}
+        )
+	</insert>
+	
+	<!-- *********************************************************************** -->
+	<!-- 첫 지출보고서 등록시 다음결제자를 등록   -->
+	<!-- *********************************************************************** -->	
+	<insert id="first_insertSignFinishReport_Sign_emp" parameterType="com.naver.erp.ExpenseDTO">
+		insert into sign_finish_report(
+		    sign_finish_no
+		    ,emp_no
+		    ,report_code
+		    ,report_no
+		    ,sign_code
+		    ,sign_date
+		    ,return_no
+		)values(
+		    (select nvl(max(sign_finish_no),0)+1 from sign_finish_report)
+		    ,#{next_app_emp_no}
+		    ,3
+		    ,(select max(report_no) from expense_report where emp_no=#{emp_no})
+		    ,-1
+		    ,sysdate
+		    ,0
+		)		
+	</insert>
+		
+	
+	<!-- *********************************************************************** -->
+	<!-- 선택한 지출보고서 상세정보를 담아오기  --> 
+	<!-- *********************************************************************** -->	
+	<select id="getBoard" parameterType="java.util.HashMap" resultType="com.naver.erp.ExpenseDTO">
+		select    
+		    report_no||''                                                                                    									as  "report_no"
+		    ,(select emp_name from employee where emp_no=e.emp_no)                                            									as  "emp_name"
+		    ,report_name                                                                                        								as  "report_name"
+		    ,expense_field_code||''                                                                                      							as "expense_field_code" 
+		    ,(select expense_field_name from code_expense_field where expense_field_code = e.expense_field_code)    							as "expense_field_name" 
+		    ,to_char(expense_date,'YYYY-MM-DD','NLS_DATE_LANGUAGE = KOREAN')                                       								as "expense_date"  
+		    ,expense_price||''                                                                                           							as "expense_price" 
+		    ,expense_method_code||''                                                                                     							as "expense_method_code"
+		    ,(select expense_method_name from code_expense_method where expense_method_code = e.expense_method_code)    						as "expense_method_name"  
+		    ,remarks    						as "remarks"  
+		    ,receipt_no   						as "receipt_no" 
+		    ,emp_no								as "emp_no" 
+		    ,report_code								as "report_code"
+            ,(select sign_code from sign_finish_report where report_no=${report_no} and emp_no=${emp_no2} and report_code=3)                        as "sign_code" 
+            ,(select dep_name from code_dept cd,employee e1 where cd.dep_no=e1.dep_no and e.emp_no = e1.emp_no )                     as "dep_name"
+            ,(select jikup_name from code_jikup cj,employee e1 where cj.jikup_code=e1.jikup_code and e.emp_no = e1.emp_no )          as "jikup_name"
+		from
+		    expense_report e
+		where 
+		    report_no=${report_no} 					
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 최종 결제자의 정보를 얻어오기      -->
+	<!-- *********************************************************************** -->
+	<select id="getlastAppMan" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="java.util.HashMap">
+		select
+		    to_char(sign_finish_no)															as "last_sign_finish_no"		
+		    ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')		as "last_sign_date"
+		    ,to_char(sign_code)																as "last_sign_code"
+		    ,to_char(emp_no)																as "last_emp_no"
+		from
+		    sign_finish_report
+		where
+            sign_finish_no = (select max(sign_finish_no) from sign_finish_report where report_no=${report_no} and report_code=3)
+	</select>	
+	
+	<!-- ** -->
+    <!-- 첫 결재자 입장에서 다음 결제자의 정보를 얻어오기      000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-->
+    <!-- ** -->
+    <select id="getNextAppMan" parameterType="string" resultType="java.util.HashMap">
+        select
+            to_char(sign_finish_no)                                                            as "next_sign_finish_no"
+            ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')        as "next_sign_date"
+            ,to_char(sign_code)                                                                as "next_sign_code"
+            ,to_char(emp_no)                                                                as "next_emp_no"
+        from
+            sign_finish_report 
+        where
+            sign_finish_no = (select min(sign_finish_no) from sign_finish_report where report_no=${report_no} and report_code=3)
+    </select>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 결제성공시 사인코드를 0 으로 업데이트 하기  -->
+	<!-- *********************************************************************** -->
+	<update id="updateSignCode" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = 0
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+	
+	<!-- *********************************************************************** -->
+	<!-- ========      -->
+	<!-- *********************************************************************** -->
+	<select id="getNextSign_finish_report" parameterType="com.naver.erp.ExpenseDTO" resultType="java.util.HashMap">
+		select  
+              to_char(emp_no)		"emp_no"
+        from
+          sign_finish_report
+       	where 
+        sign_finish_no = ( select
+							    min(sign_finish_no)          
+							from
+							    sign_finish_report
+							where
+					            sign_finish_no &gt; (select sign_finish_no from sign_finish_report where report_no=${report_no} and emp_no=${emp_no} and report_code=3)and report_code=3 and report_no=${report_no})
+        and
+        report_no=${report_no}
+        and
+        report_code=3
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 결제성공시 다음결제자의 정보를 입력 하기  -->
+	<!-- *********************************************************************** -->	
+	<insert id="new_insertSignFinishReport_Sign_emp" parameterType="com.naver.erp.ExpenseDTO">
+		insert into sign_finish_report(
+		    sign_finish_no
+		    ,emp_no
+		    ,report_code
+		    ,report_no
+		    ,sign_code
+		    ,sign_date
+		    ,return_no
+		)values(
+		    (select nvl(max(sign_finish_no),0)+1 from sign_finish_report)
+		    ,#{next_app_emp_no}
+		    ,3
+		    ,(select sign_finish_no from sign_finish_report where sign_finish_no = #{report_no})
+		    ,-1
+		    ,sysdate
+		    ,0
+		)		
+	</insert>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alter_Next_App_Sign_Code" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = -1
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alter_Next_App_Sign_Date" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = sysdate
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+		
+	<!-- *********************************************************************** -->
+	<!-- 다음 결재자 없으면 현 결재자의 시간을 업데이트 하기   -->	
+	<!-- *********************************************************************** -->
+	<update id="app_setTime" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = sysdate
+		where
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+
+	<!-- *********************************************************************** -->
+	<!-- 반려시 사인코드를 1 로 업데이트 하기  -->
+	<!-- *********************************************************************** -->
+	<update id="updateSignCodeMinus" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = 1
+		where
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+			
+	<!-- *********************************************************************** -->
+	<!-- 반려시 반려사유테이블에 반려사유 저장하기   -->
+	<!-- *********************************************************************** -->
+	<insert id="insertReturnReport" parameterType="com.naver.erp.ExpenseDTO">
+		insert into return_report(
+			sfr_no
+			,return_result
+		)values(
+			(select (sign_finish_no) from sign_finish_report where report_no=#{report_no} and emp_no=#{emp_no} and report_code=3 )
+			,#{return_result}
+		)		
+	</insert>
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 업무보고서 목록 얻어올때 결제자의 결제 상태 얻어오기 -->
+	<!-- *********************************************************************** -->
+	<select id="getSign_code" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="string">
+		select 
+            min(sign_code)			as 	"sign_code" 
+        from 
+            sign_finish_report
+        where
+        	report_no = ${report_no}
+            and 
+            emp_no = ${emp_no}
+            and
+            report_code =3
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 만약 다음결제자의 사인코드가 비어있다면 다음결제자의 사인코드 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="next_app_getSign_code" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="string">
+		select 
+		    min(sign_code)            as     "sign_code" 
+		from 
+		    sign_finish_report
+		where
+		    report_no = (select report_no from expense_report where emp_no=${emp_no} and report_no=${report_no})
+		    and
+		    report_code = 3
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 만약 첫결재자 라면 바로 앞 결재자의 시간을 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="first_app_getSign_date" parameterType="com.naver.erp.ExpenseDTO" resultType="string">
+		 select 
+            to_char(min(sign_date),'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')            as     "next_app_getSign_date" 
+        from 
+            sign_finish_report
+        where
+            report_no = ${report_no}
+            and 
+            report_code = 3
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 다음결제자의 결제시간을 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="next_app_getSign_date" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="string">
+		 select 
+            to_char(min(sign_date),'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')            as     "next_app_getSign_date" 
+        from 
+            sign_finish_report
+        where
+            sign_finish_no &gt; (select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=3)
+            and 
+            report_no = ${report_no}
+            and
+            report_code = 3
+	</select>
+	
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 컨텐츠내용 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterExpensePrice" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			expense_report
+		set
+			expense_price = #{expense_price}
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+            and
+            report_code = 3
+	</update>
+	
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 컨텐츠내용 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterExpenseReceipt_no" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			expense_report
+		set
+			receipt_no = #{receipt_no}
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no} 
+            and
+            report_code = 3
+	</update>
+	
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 컨텐츠내용 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterRemarks" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			expense_report
+		set
+			remarks = #{remarks}
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+            and
+            report_code = 3
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alterDeleteSignDate" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = null
+		where
+			report_no = #{report_no}
+			and
+			report_code = 3
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 다음결제자 사인코드 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterNextAppUpdateSignCode" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = -1
+			,
+			sign_date = sysdate
+		where
+			emp_no = #{next_app_emp_no}
+			and
+			report_no = #{report_no}
+            and
+            report_code = 3
+	</update>
+	
+	
+	
+	
+	
+	
+	
+	
+	<!-- 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999 -->
+	
+	
+	
+	
+	<!-- **************************************************************************** -->
+	<!--  지출업무보고서  목록 총 개수 구하는 select 구문이 내포된 select 태그 선언--> 
+	<!-- **************************************************************************** -->
+	<select id="getexpenseListAllTotCnt"   parameterType="com.naver.erp.ExpenseSearchDTO" resultType="int"> 
+			select count(*)
+			
+			from expense_report e
+			
+			where
+        	(
+	        	e.emp_no = #{emp_no}
+	        	or
+	        	e.report_no in(select report_no from sign_finish_report where emp_no=#{emp_no} and report_code='3'  )
+	        )
+	        and 
+	        	report_code='3'
+	</select>
+	
+	
+	<!-- **************************************************************************** -->
+	<!--  검색된 지출업무보고서 목록 총 개수 구하는 select 구문이 내포된 select 태그 선언--> 
+	<!-- **************************************************************************** -->
+	<select id="getexpenseListTotCnt" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="int"> 
+			select count(*)
+			
+			from 
+				expense_report e
+        	where
+	            1=1
+	        	  <include refid="expenseWhere"></include> 
+	        	<if test="emp_no!=null">
+	        	and
+	        	(
+		        	e.emp_no = #{emp_no}
+		        	or
+		        	e.report_no in(select report_no from sign_finish_report where emp_no=#{emp_no} and report_code='3' )
+		        )
+	       		 and 
+	        			report_code='3'
+	            </if>
+	</select>
+	
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 등록화면에  다음결재자 목록 검색하는 쿼리 -->
+	<!-- *********************************************************************** -->	
+	<select id="get_next_app_list" parameterType="com.naver.erp.ExpenseDTO" resultType="com.naver.erp.Next_App_Emp_List"> 
+		select 
+				e.emp_no "emp_no"
+				,e.emp_name "emp_name"
+				,c.jikup_name "jikup_name"
+				,(select d.dep_name from code_dept d where e.dep_no = d.dep_no) "dep_name"
+		from 
+				employee e, code_jikup c
+		where
+		    1=1
+		    and e.jikup_code = c.jikup_code
+		    and e.jikup_code  &lt; (select jikup_code from employee where emp_no = ${emp_no})
+		order by
+		 	dep_no,
+			decode(c.jikup_name,'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,'사장',1) desc
+
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 등록화면에  다음결재자 목록 검색하는 쿼리 -->
+	<!-- *********************************************************************** -->	
+	<select id="get_next_app_list2" parameterType="int" resultType="com.naver.erp.Next_App_Emp_List"> 
+		select 
+				e.emp_no "emp_no"
+				,e.emp_name "emp_name"
+				,c.jikup_name "jikup_name"
+				,(select d.dep_name from code_dept d where e.dep_no = d.dep_no) "dep_name"
+		from 
+				employee e, code_jikup c
+		where
+		    1=1
+		    and e.jikup_code = c.jikup_code
+		    and e.jikup_code  &lt; (select jikup_code from employee where emp_no = ${emp_no})
+		order by
+		 	dep_no,
+			decode(c.jikup_name,'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,'사장',1) desc
+
+	</select>
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 로그인한 사람의 다음 결제자의 정보를 얻어오기      -->
+	<!-- *********************************************************************** -->
+	<select id="getLogin_NextAppMan" parameterType="com.naver.erp.ExpenseDTO" resultType="java.util.HashMap">
+		select
+		    to_char(sign_finish_no)															as "next_sign_finish_no"		
+		    ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')		as "next_sign_date"
+		    ,to_char(sign_code)																as "next_sign_code"
+		    ,to_char(emp_no)																as "next_emp_no"
+		from
+		    sign_finish_report
+		where
+            sign_finish_no = (select min(sign_finish_no) from sign_finish_report where report_no=${report_no}and report_code=3)
+
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<sql id="expenseWhere">
+				
+				<if test="(keyword!=null and keyword.length()>0)">
+					and 
+					(
+						upper( (select emp_name from employee where emp_no=e.emp_no)) like upper('%${keyword}%')
+						or
+						upper(report_name) like upper('%${keyword}%')
+					)
+				</if>
+				
+
+			 	 <if test="expense_field_code!=null">
+					<foreach collection="expense_field_code" item="xxx" open="and (" close=")" separator="or">
+							#{xxx} = (select expense_field_code from  code_expense_field where expense_field_code = e.expense_field_code)
+					</foreach> 
+				</if>
+				
+
+			 	 <if test="expense_method_code!=null">
+					<foreach collection="expense_method_code" item="xxx" open="and (" close=")" separator="or">
+							#{xxx} = (select expense_method_code from  code_expense_method where expense_method_code = e.expense_method_code)
+					</foreach> 
+				</if>
+				
+				 <if test="sign_code!=null">
+					<foreach collection="sign_code" item="xxx" open="and (" close=")" separator="or">
+						
+						#{xxx} =  ( select  sign_code from sign_finish_report where report_no = e.report_no and emp_no = #{emp_no} and report_code=3  )
+					</foreach>  
+					
+					
+					<foreach collection="sign_code" item="xxx" open="or (" close=")" separator="or">
+						
+						#{xxx} =  ( select  min(sign_code) from sign_finish_report where report_no = e.report_no and e.emp_no = #{emp_no} and report_code=3 )
+					</foreach> 
+					
+					
+				</if>    
+				 
+				
+				
+				
+				<if test="min_year_month!=null and min_year_month.length>0">
+					and expense_date &gt;= to_date( #{min_year_month} ,'YYYY-MM-DD' )
+				</if>
+				
+				<if test="max_year_month!=null and max_year_month.length>0">
+					and expense_date &lt;= to_date( #{max_year_month} ,'YYYY-MM-DD' ) 
+				</if> 
+				
+				
+				 
+				<if test="expense_min_price1!=null and expense_min_price1>0">
+					and expense_price &gt;= to_number( #{expense_min_price1} )
+				</if>
+				
+				<if test="expense_max_price1!=null and expense_max_price1>0">
+					and expense_price &lt;= to_number(  #{expense_max_price1} ) 
+				</if> 
+				 
+			
+		 
+				
+				
+				
+	</sql>
+	
+	<!-- *********************************************************************** -->
+	<!-- 지출보고서 리스트를 받아오기     -->
+	<!-- *********************************************************************** -->	
+	<select id="getExpenseList" parameterType="com.naver.erp.ExpenseSearchDTO" resultType="java.util.HashMap">
+	
+	select * from ( select  rownum RNUM, zxcvb.* from  (
+        select 
+            report_no||''                                                                                    as  "report_no"
+            ,(select emp_name from employee where emp_no=e.emp_no)                                            as  "emp_name"
+            ,     
+            	case
+		            	when length(report_name) >= 10 then substr(report_name,0,10) || '...'
+		                else report_name
+		        end  																						  as  "report_name"
+            ,expense_field_code                                                                                     as "expense_field_code" 
+            ,(select expense_field_name from code_expense_field where expense_field_code = e.expense_field_code)    as "expense_field_name" 
+            ,to_char(expense_date,'YYYY-MM-DD','NLS_DATE_LANGUAGE = KOREAN')		                                as "expense_date"  
+            ,REGEXP_REPLACE(REVERSE(REGEXP_REPLACE(REVERSE(TO_CHAR(expense_price)), '(\d{3})','\1,')), '^,','')     as "expense_price" 
+            ,expense_method_code                                                                                    as "expense_method_code"
+            ,(select expense_method_name from code_expense_method where expense_method_code = e.expense_method_code)    as "expense_method_name"
+            ,report_code||''   as "report_code"
+            ,emp_no||''   as "emp_no"
+        from 
+            expense_report e
+        where
+        	1=1
+         	<include refid="expenseWhere"></include>  
+            <if test="emp_no!=null">
+            and
+            	(
+	            e.emp_no = #{emp_no}
+	            or
+	            	(
+			            e.report_code =3
+			            and
+			            e.report_no in(select report_no from sign_finish_report where emp_no=#{emp_no}and report_code=3)
+		            )
+	            )
+	            
+	          
+            </if>  
+            order by
+					e.report_no desc
+	) zxcvb) where  RNUM &gt;=#{begin_rowNo} and RNUM &lt;=#{end_rowNo} 
+	
+	
+	
+	</select>
+		
+	
+	
+	
+	
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ======진성 -->
+	<!-- *********************************************************************** -->
+	<update id="alterDeleteReturnReport" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			return_report
+		set
+			return_result = null
+		where
+			sfr_no in(select sign_finish_no from sign_finish_report where report_no=${report_no} and report_code=3)
+	</update>
+	
+		
+	<!-- *********************************************************************** 
+	======진성   
+	***********************************************************************	 -->
+	<select id="getAppList" parameterType="com.naver.erp.ExpenseDTO" resultType="java.util.HashMap">
+        select
+       	 	e.emp_name                                                      as "app_emp_name"
+        	,(select dep_name from code_dept where dep_no = e.dep_no)       as "app_dep_name"
+        	,(select jikup_name from code_jikup where jikup_code = e.jikup_code) as "app_jikup_name"
+        	,decode(sf.sign_code,-1,'미결재',0,'결재','반려')                  as "app_sign_name" 
+        	,(select return_result from return_report where sfr_no = sf.sign_finish_no ) as "app_return_result" 
+        	,sf.report_code													as "report_code"
+        	,sf.report_no													as "report_no" 
+        	,sf.emp_no														as "emp_no" 
+      from
+        	sign_finish_report sf,employee e
+      where
+        	sf.emp_no = e.emp_no
+        	and
+        	report_no = ${report_no}
+        	and
+        	report_code = 3
+      order by
+          	decode((select jikup_name from code_jikup where jikup_code = e.jikup_code),'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,1) desc
+	</select> 
+	
+		
+	<!-- *********************************************************************** -->
+	<!-- ***************************진성 --> 
+	<!-- *********************************************************************** -->	
+	<select id="next_appList_getSign_date" parameterType="java.util.HashMap" resultType="string">
+		select 
+           to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')
+        from
+            sign_finish_report
+        where
+            sign_finish_no = (
+            select 
+                min(sign_finish_no)
+            from 
+                sign_finish_report 
+            where sign_finish_no &gt;
+            (select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=3 ) and report_no = ${report_no} and report_code = 3)
+            and
+            report_no = ${report_no}
+            and
+            report_code = 3		
+	</select>
+		
+	<!-- *********************************************************************** -->
+	<!-- ***************************진성 --> 
+	<!-- *********************************************************************** -->	
+	<select id="my_appList_getSign_date" parameterType="java.util.HashMap" resultType="string">
+		select 
+		   to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')
+		from
+		    sign_finish_report
+		where
+			emp_no=${emp_no} 
+			and 
+			report_no=${report_no} 
+			and report_code=3		
+	</select>
+	
+	
+	
+	<!-- ** -->
+    <!-- **=====**======*=====**========== --> 
+    <!-- ** -->
+    <select id="nextAppManEmp_no" parameterType="java.util.HashMap" resultType="string">
+         select 
+           emp_no||''    as "emp_no"
+        from
+            sign_finish_report
+        where
+            sign_finish_no = 
+            (select min(sign_finish_no) from sign_finish_report where sign_finish_no>(select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=3) and report_code=3 and report_no=${report_no})
+
+    </select>
+	
+	
+		
+	<!-- ******************12.10추가*************************************************************************************************************** -->
+		
+	<!-- *********************************************************************** -->
+	<!-- *********************************************************************** -->	
+	<select id="haveOrNoneReturn_report" parameterType="com.naver.erp.ExpenseDTO" resultType="int">
+		select count(*) from return_report where sfr_no = (select sign_finish_no from sign_finish_report where emp_no = ${emp_no} and report_no =${report_no} and report_code=3)				
+	</select>
+	
+	
+	
+				
+	<!-- *********************************************************************** -->
+	<!-- ======진성 -->
+	<!-- *********************************************************************** -->
+	<update id="insertReturnResult" parameterType="com.naver.erp.ExpenseDTO">
+		update
+			return_report
+		set
+			return_result = #{return_result}
+		where
+			sfr_no in(select sign_finish_no from sign_finish_report where report_no=${report_no} and report_code=3 and emp_no = ${emp_no})
+	</update>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</mapper>

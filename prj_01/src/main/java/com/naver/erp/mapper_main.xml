@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--***************************************************-->
+<!-- mapper 태그 선언하기 -->
+<!-- mapper 태그 안의 namespace 값은 [원하는 인터페이스 저장 패키지 경로]하고 일치해야한다. -->
+<!--***************************************************  -->
+<mapper namespace="com.naver.erp.MainDAO">
+
+	<!--***************************************************-->
+	<!-- 게시판 글 목록 구할 떄 사용할 where 절을 sql 태그 안에 선언하기 -->
+	<!--***************************************************-->
+	<sql id="boardWhere">					
+					
+					1=1
+					<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+						and (
+					</if>
+					<if test="keyword1!=null and keyword1.length()>0">
+							(
+								upper(subject) like upper('%${keyword1}%')
+								or
+								upper(content) like upper('%${keyword1}%')
+								
+							)
+					</if>
+					<if test="(keyword1!=null and keyword1.length()>0) and (keyword2!=null and keyword2.length()>0)">
+						${orAnd}
+					</if>
+							
+					<if test="keyword2!=null and keyword2.length()>0">
+							(
+								upper(subject) like upper('%${keyword2}%')
+								or
+								upper(content) like upper('%${keyword2}%')
+								
+							)
+					</if>
+					<if test="(keyword1!=null and keyword1.length()>0) or (keyword2!=null and keyword2.length()>0)">
+						)
+					</if>
+					<if test="date!=null">
+						<foreach collection="date" item="xxx" open="and (" close=")" separator=" or ">
+							to_char(
+								sysdate ${xxx}   
+								,'YYYYMMDD'
+							)=to_char(reg_date,'YYYYMMDD')
+						</foreach>
+					</if>
+			</sql>
+	<select id="getBoardList" resultType="java.util.HashMap">
+select * from ( select  rownum RNUM, zxcvb.* from  (
+		select
+			b_no  as "b_no"
+			
+			
+			,case
+		            	when length(subject) >= 10 then substr(subject,0,9) || '...'
+		                else subject
+		     end         
+			 as "subject"
+			
+			,to_char( reg_date,'YYYY-MM-DD')       as "reg_date"
+		from 
+			board			
+		order by
+			reg_date desc 
+) zxcvb) where RNUM &gt;=1 and RNUM &lt;=5   
+	</select>
+
+	<!-- **************************************************** -->
+	<!-- 검색된 게시판 글 목록 총 개수 구하는 select 구문이 내포된  select 태그 선언-->
+	<!-- **************************************************** -->
+	<select id="getBoardListTotCnt" parameterType="com.naver.erp.BoardSearchDTO"  resultType="int">
+			select  
+				count(*)
+			from 
+				board		
+			where
+				<!--=============================-->
+				<!--<sql id="boardWhere"> 태그 안에 삽입된 SQL 구문 삽입하기-->
+				<!--=============================-->
+				<include refid="boardWhere"/>
+				
+	</select>
+	<!-- **************************************************** -->
+	<!-- 게시판 글 목록 총 개수 구하는 select 구문이 내포된  select 태그 선언-->
+	<!-- **************************************************** -->
+	<select id="getBoardListAllTotCnt" resultType="int">
+			select  
+				count(*)
+			from 
+				board		
+	</select>
+	<!--***************************************************-->
+	<!-- 게시판 글 입력하는 insert 문을 내포한 insert 태그 선언 -->
+	<!--***************************************************-->
+	<insert id="insertBoard" parameterType="com.naver.erp.BoardDTO">
+		insert into board(
+			b_no
+			,subject			
+			,readcount
+			,content
+			
+		)
+		values
+		(
+			(select nvl(max(b_no),0)+1 from board)
+			,#{subject}			
+			,0
+			,#{content}
+			
+		)
+	</insert>
+
+
+	<!-- **************************************************** -->
+	<!-- 조회수 1증가하는 즉 수정하는 update 문을 내포한 update 태그 선언 -->
+	<!-- **************************************************** -->
+	<update id="updateReadcount" parameterType="int">
+		update 
+			board
+		set
+			readcount = readcount+1
+		where 
+			b_no=#{b_no}
+	</update>
+	
+	<!--*************************************************************  java.util.HashMap -->
+	<!-- 게시판 1개 글 검색하는 select 문을 내포한 select 태그 선언-->
+	<!--*************************************************************-->
+	<select id="getBoard" parameterType="int" resultType="com.naver.erp.BoardDTO">
+		select 
+			b_no		  "b_no"
+			,subject 	  "subject"
+			,writer 	  "writer"
+			,reg_date     "reg_date" 
+			,readcount    "readcount"
+			,to_char(content) 	  "content"
+			
+			
+		from 
+			board 
+		where
+			b_no=#{b_no}
+	</select>
+	<!-- **************************************************** -->
+	<!-- 삭제/수정할 게시판의 존재 개수를 리턴하는 select 을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="getBoardCnt" parameterType="int"  resultType="int">
+		select count(*) from board where b_no=#{b_no} 
+	</select>
+	
+	
+	<!-- **************************************************** -->
+	<!-- 삭제/수정할 게시판의 비밀번호 개수를 리턴하는 select 을 내포하는 select 태그 선언 -->
+	<!-- **************************************************** -->
+	<select id="getBoardPwdCnt" parameterType="com.naver.erp.BoardDTO" resultType="int">
+		select count(*) from board where b_no=#{b_no}
+	</select>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 수정하는 update 을 내포하는 update 태그 선언 -->
+	<!-- **************************************************** -->
+	<update id="updateBoard"  parameterType="com.naver.erp.BoardDTO" >
+		update
+			board
+		set
+			subject = #{subject}
+			
+			,content = #{content}
+			
+		where
+			b_no=#{b_no}
+	</update>
+	
+	<!-- **************************************************** -->
+	<!-- 게시판 삭제하는 delete 구문을 내포하는 delete 태그 선언 -->
+	<!-- **************************************************** -->
+	<delete id="deleteBoard"  parameterType="com.naver.erp.BoardDTO" >
+		delete
+		from
+			board
+		where
+			b_no=#{b_no}
+	</delete>
+	
+		<select id="getEmp10"  resultType="int">
+	
+		select count(*) from employee where dep_no = 10
+		
+	</select>
+
+	<select id="getEmp20" resultType="int">
+	
+		select count(*) from employee where dep_no = 20
+		
+	</select>
+	
+	<select id="getEmp30" resultType="int">
+	
+		select count(*) from employee where dep_no = 30
+		
+	</select>
+
+	<select id="getEmp40" resultType="int">
+	
+		select count(*) from employee where dep_no = 40
+		
+	</select>
+	
+	<select id="getEmp50" resultType="int">
+	
+		select count(*) from employee where dep_no = 50
+		
+	</select>
+	
+	<select id="getEmp60" resultType="int">
+	
+		select count(*) from employee where dep_no = 60
+		
+	</select>
+	
+	
+		
+	
+	<select id="getApprovalTypeCnt"  parameterType="com.naver.erp.MainDTO" resultType="hashmap">
+	
+		select
+                report_code
+                ,(select count(*) from sign_finish_report where sign_code=0 and emp_no = ${uid}  and report_code=${r_num} )  as "payment" 
+                ,(select count(*) from sign_finish_report where sign_code=-1 and emp_no = ${uid} and report_code=${r_num})   as "notPayment" 
+                ,(select count(*) from sign_finish_report where sign_code=1 and emp_no = ${uid} and report_code=${r_num})   as "returnCnt" 
+            from
+                sign_finish_report
+            group by
+                report_code 
+            having
+                report_code = ${r_num}
+	
+		
+	</select>
+	
+	
+	
+	<select id="getRegDeailyBusiTypeCnt"  parameterType="hashmap" resultType="hashmap">
+	
+		select
+			report_code  as "d_report"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=10 and emp_no =${uid})  as "d1"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=20 and emp_no =${uid}) as "d2"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=30 and emp_no =${uid}) as "d3"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=40 and emp_no =${uid}) as "d4"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=50 and emp_no =${uid}) as "d5"
+		    ,(select count(busi_type_code) from daily_report where busi_type_code=60 and emp_no =${uid}) as "d6"
+		from
+		    daily_report
+		group by
+		    report_code
+	
+	</select>
+	
+	
+	
+		<select id="getRegSaleTypeCnt"  parameterType="hashmap" resultType="hashmap">
+	
+		select
+		   	 report_code  as "s_report"
+		    ,(select count(sales_type_code) from sales_report where sales_type_code=10 and emp_no =${uid}) as "s1"
+		    ,(select count(sales_type_code) from sales_report where sales_type_code=20 and emp_no =${uid}) as "s2"
+		    ,(select count(sales_type_code) from sales_report where sales_type_code=30 and emp_no =${uid}) as "s3" 
+		    ,(select count(sales_type_code) from sales_report where sales_type_code=40 and emp_no =${uid}) as "s4"
+		    ,(select count(sales_type_code) from sales_report where sales_type_code=50 and emp_no =${uid}) as "s5"
+		from
+		    sales_report
+		group by
+	   	 	report_code
+	
+	</select>
+	
+	
+	
+		<select id="getRegExTypeCnt"  parameterType="hashmap" resultType="hashmap">
+	
+			select
+			    report_code as "e_report"
+			    ,(select count(expense_method_code) from expense_report where expense_method_code=10 and emp_no =${uid}) as "e1" 
+			    ,(select count(expense_method_code) from expense_report where expense_method_code=20 and emp_no =${uid}) as "e2"
+			    ,(select count(expense_method_code) from expense_report where expense_method_code=30 and emp_no =${uid}) as "e3"
+			    ,(select count(expense_method_code) from expense_report where expense_method_code=40 and emp_no =${uid}) as "e4"
+			from
+			    expense_report
+			group by
+			    report_code
+			
+		</select>
+
+</mapper>

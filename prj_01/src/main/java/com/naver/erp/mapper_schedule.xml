@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+ 
+<mapper namespace="com.naver.erp.ScheduleDAO">
+
+    <!--   -->
+	<select id="getList"  parameterType="String" resultType="hashmap">
+	
+			select 
+				calendar_no           ||''                   as "cal_no"
+				,
+				
+				case
+		            	when length(calendar_title) >= 5 then substr(calendar_title,0,5) || '...'
+		                else calendar_title
+		        end                 as "title"
+	            
+	            
+	            ,to_char(calendar_start_date,'yyyy-mm-dd') ||'T'||to_char(calendar_start_date,'hh24:mi:ss')   as "start"
+	            ,to_char(calendar_end_date,'yyyy-mm-dd') ||'T'||to_char(calendar_end_date,'hh24:mi:ss')   as "end" 
+	            ,presence_or_absence  ||''                   as "youmoo"  
+            from 
+            	calendar
+            where 
+            	emp_no = ${uid}
+            
+           <!-- ★★★ 12-10 새벽에 바꾼거 일단 가져올 때 T 붙여서 분,초 까지 가져오기 --> 
+	
+	</select>
+
+   
+    <insert id="insertList" parameterType="com.naver.erp.ScheduleDTO" >
+    
+    insert into calendar
+    (
+    	calendar_no 
+    	,emp_no
+    	,calendar_title
+    	,calendar_start_date
+    	,calendar_end_date
+    )
+    values
+    (
+    	(select nvl(max(calendar_no),0)+1 from calendar)
+    	,${uid}
+    	,#{subject}
+    	<if test="
+    	       (start_hour == null or start_hour.length() == 0 ) 
+    	       and (start_minute == null or start_minute.length() == 0 ) 
+    	       and (end_hour == null or end_hour.length() == 0 ) 
+    	       and (end_minute == null or end_minute.length() == 0 ) 
+    	       and ( sub_start_minute == null or sub_start_minute.length() == 0 )
+    	       and ( sub_end_minute == null or sub_end_minute.length() == 0 )
+    	">
+    	
+    	 ,to_date(#{start_date},'yyyy-mm-dd')
+    	 ,to_date(#{end_date},'yyyy-mm-dd') 
+    	
+    	</if>
+    	
+    	<if test="
+    	       (start_hour != null and start_hour.length() > 0 ) 
+    	       and (  (start_minute != null and start_minute.length() > 0 )  or ( sub_start_minute != null and sub_start_minute.length() > 0 )  ) 
+    	       and (end_hour != null and end_hour.length() > 0 ) 
+    	       and ( (end_minute != null and end_minute.length() > 0 ) or  ( sub_end_minute != null and sub_end_minute.length() > 0 )  ) 	       
+    	">
+    	
+    	
+    	
+    		<if test=" (sub_start_minute != null and sub_start_minute.length() > 0 )
+    		          and ( sub_end_minute != null and sub_end_minute.length() > 0 )">
+    			 ,to_date(#{start_date} || '-' || #{start_hour} || '-' ||  #{sub_start_minute}   ,'yyyy-mm-dd-hh24-mi')
+		    	 ,to_date(#{end_date} || '-' || #{end_hour}  || '-' || #{sub_end_minute}  ,'yyyy-mm-dd-hh24-mi') 
+    		</if>
+  
+		    	 
+		    <if test="(sub_start_minute == null or sub_start_minute.length() == 0 )
+		              and ( sub_end_minute == null or sub_end_minute.length() == 0 )">
+		    	 ,to_date(#{start_date} || '-' || #{start_hour} || '-' ||  #{start_minute}   ,'yyyy-mm-dd-hh24-mi')
+		    	 ,to_date(#{end_date} || '-' || #{end_hour}  || '-' || #{end_minute}  ,'yyyy-mm-dd-hh24-mi')    		
+    		</if>	
+		    	
+		 	
+		    	
+    	</if>
+    ) 
+    
+    </insert>	
+    
+
+   <select id="getCalShareCnt" parameterType="com.naver.erp.ScheduleDTO" resultType="int">
+   
+   		select count(*) from scheduleShare where calendar_no = ${cal_no}
+   
+   </select>
+
+
+   <!-- 클릭한 해당 일정바를 팝업창에서 삭제하는 쿼리 -->
+   <delete id="getCalDelCnt" parameterType="com.naver.erp.ScheduleDTO">
+    
+    	delete from calendar where calendar_no = ${cal_no}
+    
+    </delete>
+
+
+    <!-- 클릭한 해당 일정바를 팝업창에서 수정하는 쿼리 -->  
+    <update id="getCalUpCnt" parameterType="com.naver.erp.ScheduleDTO">
+    
+        update calendar set calendar_title = #{subject}
+        
+         <if test="
+    	       (start_hour == null or start_hour.length() == 0 ) 
+    	       and (start_minute == null or start_minute.length() == 0 ) 
+    	       and (end_hour == null or end_hour.length() == 0 ) 
+    	       and (end_minute == null or end_minute.length() == 0 ) 
+    	">
+        	,calendar_start_date = to_date(#{start_date},'yyyy-mm-dd')
+        	,calendar_end_date = to_date(#{end_date},'yyyy-mm-dd')
+        </if>
+        
+        <if test="
+    	       (start_hour != null and start_hour.length() > 0 ) 
+    	       and (start_minute != null and start_minute.length() > 0 ) 
+    	       and (end_hour != null and end_hour.length() > 0 ) 
+    	       and (end_minute != null and end_minute.length() > 0 ) 
+        ">
+        	,calendar_start_date = to_date(#{start_date} || '-' || #{start_hour} || '-' ||  #{start_minute},'yyyy-mm-dd-hh24-mi')
+        	,calendar_end_date = to_date(#{end_date} || '-' || #{end_hour} || '-' ||  #{end_minute},'yyyy-mm-dd-hh24-mi')
+        </if>
+            , presence_or_absence = 0 
+         
+        where calendar_no = ${cal_no}
+        
+    
+    </update>
+
+ 
+ 
+    <!-- 해당 번호의 캘린더 목록을 가져오는 구문 -->
+    <select id="getCalList" parameterType="String" resultType="hashmap">
+    		
+    		select 
+    		   calendar_no          ||''  as "cal_no"
+ 		       ,emp_no              ||''  as "emp_no"
+		       ,calendar_title      ||''  as "cal_title"
+		       ,to_char(calendar_start_date,'yyyymmddhh24mi')   as "cal_start"
+		       ,to_char(calendar_end_date,'yyyymmddhh24mi')     as "cal_end"	 	
+    		 from calendar where calendar_no = #{cal_no}
+    		
+    </select>
+ 
+    <!-- 해당 번호 외에 모든 캘린더 목록을 가져오는 구문 -->
+    <select id="getEmpList" parameterType="String" resultType="hashmap">
+    		
+    		select 
+    			emp_no        || ''   as "emp_no"
+    			, emp_name            as "emp_name"
+    			, jikup_name          as "jikup_name" 
+			from 
+				employee e, code_jikup c
+			where 
+    			e.jikup_code = c.jikup_code
+    			and emp_no != #{uid}
+    		
+    </select>
+   
+
+    <!-- 일정 상세보기에서 일정 공유 때리면 공유테이블에 인설트  -->
+    <insert id="getCnt" parameterType="hashmap" >
+    	
+    	insert into scheduleShare(
+    		share_no    
+     		,theSender  
+     		,theRecipient
+     		,calendar_no 
+     		,subject  
+    	)
+    	values(
+    	    ( select nvl(max(share_no),0)+1 from  scheduleShare )
+    	    ,${uid}
+    	    ,${someone_to_share}
+    	    ,${cal_no}
+    	    ,#{subject}
+    	)
+    	
+    </insert>
+    
+    
+    
+    <!-- 검색한 게시물 가져오는 녀석과 , 그 개수를 가져오는 녀석의 
+         where 조건절이 같기에 마이바리스 sql태그를 사용한다. -->
+    <sql id="ShareListWhere">
+    
+    	s.thesender = e.emp_no
+		and
+		    therecipient = ${uid}	
+		    	 	
+    	 	     <if test="keyword != null and keyword.length() > 0">
+            
+                 	and  
+                 	    ( 
+                 	     upper(emp_name) like  upper('%${keyword}%')
+                 	 or  
+                 	     upper(subject)  like  upper('%${keyword}%')
+                        )
+                 </if>
+          
+     
+    
+    </sql>
+    
+    
+
+    <!-- 해당아이디로 들어온 알림 리스트 뽑아오는 쿼리 -->	
+    <select id="getShareList" parameterType="com.naver.erp.NotificationDTO" resultType="hashmap"> 
+    	
+    	select * from ( select  rownum  RNUM, b.* from  (
+    	
+    	
+    	
+    	
+		    	 select 
+		    	    share_no       ||''  as "share_no"   
+		            ,calendar_no   ||''  as "calendar_no"
+		            ,emp_name      ||''  as "emp_name"
+		            ,subject       ||''  as "subject"
+		            ,to_char(timesent,'yyyy-mm-dd (dy) am hh:mi:ss','nls_date_language = korean') as "timesent"  
+		            ,case
+		            	when length(subject) >= 5 then substr(subject,0,5) || '...'
+		                else subject
+		             end                 as "title"
+		         from
+		             scheduleShare s  , employee e  
+		         where        
+		            <include refid="ShareListWhere" />
+		            
+		         <if test="sort == null or sort.length() == 0 ">   
+	    	 	     order by 
+	        	     	5 desc
+    	 	     </if>
+    	 	     
+    	 	     <if test="sort!=null and sort.length() > 0">
+				     order by
+				        ${sort}
+                 </if> 
+    	 	
+    	) b ) where  RNUM >= ${begin_rowNo} and ${end_rowNo} >= RNUM 			
+    
+    </select>	
+    
+    
+    
+    
+         
+     <!-- 현재 알림 목록의 총개수를 가져오는 게 위에 이미 있어서
+          이놈은 나중에 검색된 녀석의 개수 가져올 때 쓰자 -->
+     
+     <select id="getSearchCnt" parameterType="com.naver.erp.NotificationDTO" resultType="int">
+     
+     	select count(*) 
+     	from     
+     		scheduleShare s  , employee e  
+		where
+			<include refid="ShareListWhere" />  
+     
+     </select>
+     
+     
+    
+    
+    
+    
+    
+    <!-- 해당아이디로 일정관리 창 드갈 때 가져갈 알림 갯수  --> 
+    <select id="getListCnt" parameterType="String" resultType="int">
+    
+    	select count(*) from scheduleShare where therecipient = ${uid}
+    
+    </select>
+
+
+    
+    <!-- 해당아이디로 들어온 알림 리스트 뽑아오는 쿼리 -->	
+    <select id="getOneList" parameterType="String" resultType="hashmap"> 
+    	
+    	 select 
+    	    share_no       ||''  as "share_no"   
+            ,calendar_no   ||''  as "calendar_no"
+            ,emp_name      ||''  as "emp_name"
+            ,subject       ||''  as "subject"
+            ,to_char(timesent,'yyyy-mm-dd (dy) am hh-mi-ss','nls_date_language = korean') as "timesent"  
+            ,c.jikup_name               as "jikup"    
+         from
+             scheduleShare s  , employee e , code_jikup c
+         where        
+            s.thesender = e.emp_no
+         and
+    		c.jikup_code = e.jikup_code
+         and
+    	 	share_no = ${share_no}	
+    	 			
+    
+    </select>
+
+
+     <!-- 저~~위에 인설트랑 같지만 날짜 입력과정이 다르기에 달리 만들었다. -->
+     <insert id="getPutCnt" parameterType="hashmap" >
+    
+	    insert into calendar
+	    (
+	    	calendar_no 
+	    	,emp_no
+	    	,calendar_title
+	    	,calendar_start_date
+	    	,calendar_end_date
+	    	,presence_or_absence
+	    )
+	    values
+	    (
+	    	(select nvl(max(calendar_no),0)+1 from calendar)
+	    	,${uid}
+	    	,#{subject}
+	    	,to_date(#{start_date},'yyyymmddhh24mi')
+	    	,to_date(#{end_date},'yyyymmddhh24mi')
+	    	,1
+        )
+        
+     </insert>
+     
+     
+     
+     <!-- 알림 상세보기 에서 거절 시 삭제  -->
+     <delete id="getDelCnt" parameterType="String">
+     
+     		delete 
+     			from 
+     				scheduleShare
+     					where
+     						share_no = ${share_no}
+     		
+     
+     </delete>
+     
+     
+     <!-- 공유할 사람의 이름을 가져오는  -->
+     <select id="getName" parameterType="String" resultType="String">
+     
+     	select emp_name from employee where emp_no = ${who}
+     
+     </select>
+     
+     
+
+     <!-- 일정완료 때린 일정바의 색깔을 핑크빛으로 바꾸는!!! -->
+     <update id="getCompletCnt" parameterType="String">
+     
+     		update 
+     			calendar 
+     				set 
+     					presence_or_absence = 2
+     				where
+     					calendar_no = ${cal_no}	
+     
+     </update>
+     
+     
+     
+     
+     
+     
+</mapper>
+

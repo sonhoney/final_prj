@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-Prj01Application<prj_01>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.naver.erp.Prj01Application",
+            "projectName": "prj_01",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

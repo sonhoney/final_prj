@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--***************************************************-->
+<!-- mapper 태그 선언하기 -->
+<!-- mapper 태그 안의 namespace 값은 [원하는 인터페이스 저장 패키지 경로]하고 일치해야한다. -->
+<!--<mapper namespace="com.naver.erp.MypageDAO">  -->
+
+<!--***************************************************-->
+ <mapper namespace="com.naver.erp.MypageDAO">
+ 
+  
+	
+	<!--**************************-->
+	<!-- 마이페이지에 필요한 정보 -->
+	<!--**************************-->
+	<select id="getMypage" parameterType="hashmap" resultType="java.util.HashMap">
+
+	select
+			    
+			    e1.emp_name     "emp_name"
+			    ,e1.emp_no        "emp_no"
+			    ,e1.emp_pwd		"emp_pwd"
+			    ,e1.jumin_num	"jumin_num"
+			    ,e1.email 		"email"
+			    ,e1.emp_role	"emp_role"
+			    ,d.dep_name     "dep_name"
+			    ,j.jikup_name   "jikup_name"
+			    ,e2.emp_name     "emp_name2"
+			    ,e1.phone_num    "phone_num"			   			    
+			   	,e1.dep_no		"dep_no"
+			   	,e1.jikup_code	"jikup_code"
+			  	,e1.mgr_emp_no "mgr_emp_no"
+			  	,to_char( to_date(case substr(e1.jumin_num,7,1) when '1' then '19' when '2' then '19' else '20' end||substr(e1.jumin_num,1,6),'YYYYMMDD'),'YYYY"년"MM"월"DD"일"', 'NLS_DATE_LANGUAGE = Korean') "birthday"	 
+			  
+			  	
+			  	
+			from
+			    employee e1, employee e2, code_dept d, code_jikup j
+			where
+			    e1.dep_no=d.dep_no
+			    and
+			    e1.mgr_emp_no=e2.emp_no
+			    and
+			    e1.jikup_code=j.jikup_code			   
+			   	and
+			   	e1.emp_no=${uid}
+			   	
+			  
+	
+	
+	</select>	
+	
+
+
+
+	
+	
+</mapper>
+			
+

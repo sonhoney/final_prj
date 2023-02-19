@@ -1,0 +1,203 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css");
+@import url("https://cdn.rawgit.com/moonspam/NanumSquare/master/nanumsquare.css");
+/* reset.css */
+@import url(https://cdn.jsdelivr.net/gh/moonspam/NanumSquare@1.0/nanumsquare.css);
+html, body, div, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, address, dl, dt, dd, ol, ul, li, fieldset, form, legend, table, caption, tbody, tfoot, thead, tr, th, td, input, select, textarea {
+  margin: 0;
+  padding: 0; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: 100%; }
+
+img, fieldset {
+  border: 0px; }
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0; }
+
+ul, ol, li {
+  list-style: none; }
+
+address, em {
+  font-style: normal; }
+
+li img, object {
+  vertical-align: top; }
+
+input, select, textarea {
+  vertical-align: middle; }
+
+a {
+  outline: 0;
+  text-decoration: none;
+  border: none;
+  color: #444; }
+
+body {
+  font-size: 16px;
+  font-family: 'NanumSquare', sans-serif;
+  color: #444;
+  padding-top : 8%;
+   }
+
+.noMargin {
+  margin: 0px; }
+
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box; }
+
+header, section, footer, aside, nav, main, article, figure {
+  display: block; }
+
+.float_clear:after {
+  content: '';
+  display: block;
+  clear: both; }
+
+.hidden {
+  display: none; }
+
+.blind {
+  display: block;
+  text-indent: -2000px;
+  overflow: hidden; }
+
+/* space */
+/* 16px base */
+/* line hieght */
+/* onback_cup */
+/* onback_detail */
+/* font size */
+/* line height */
+#header {
+  width: 530px;
+  margin: 0 auto;
+  padding-bottom:50px;
+   }
+#header a{
+	margin: 0 auto;	
+	display : block;
+}
+#header a img{
+	margin : 0 auto;
+	display : block;
+}
+
+#section1 {
+  
+  margin: 0 auto;
+  border-bottom: 0.5px solid #707070;
+  width: 530px; }
+  #section1 .form {
+    width: 100%; }
+    #section1 .form .uid, #section1 .form .pwd {
+      margin-bottom: 2%;
+      width: 100%;
+      height: 50px;
+      padding:3% 4%;
+      border: 1px solid #979797; }
+  #section1 .section1_text {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5%;
+    width: 100%; }
+    #section1 .section1_text .find {
+      width: 40%;
+      color: #7b7b7b; }
+      #section1 .section1_text .find ul {
+        display: flex;
+        width: 100%; }
+      #section1 .section1_text .find li:first-child a {
+        margin-right: 5px; }
+      #section1 .section1_text .find li:last-child {
+        margin-left: 5px; }
+      #section1 .section1_text .find a {
+        color: #7b7b7b; }
+        
+    #section1 .section1_text .continue {
+      display: flex;
+      justify-content: space-between;
+      width: 32%;
+      color: #7b7b7b; }
+      #section1 .section1_text .continue input[type=checkbox] + label {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        background: url(../images/section1_text_check.png) no-repeat; }
+      #section1 .section1_text .continue input[type=checkbox]:checked + label {
+        background: url(../images/section1_text_checked.png) no-repeat; }
+      #section1 .section1_text .continue input[type=checkbox] {
+        display: none; }
+  #section1 .section1_btn {
+    display: flex;
+    justify-content: space-around;
+    margin: 7% 0; }
+    #section1 .section1_btn .loginBtn {
+      width: 173px;
+      height: 46px;
+      border-radius: 3px;
+      background: #ff7a58;
+      color: #fff;
+      text-align: center;
+      line-height: 49px; 
+      
+      }
+    #section1 .section1_btn .memJoinBtn {
+      width: 173px;
+      height: 46px;
+      border: 1px solid #ff7a58;
+      background: #fff;
+      color: #ff7a58;
+      text-align: center;
+      line-height: 49px;
+      }
+
+#section2 {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  margin-left: -265px; }
+
+@media screen and (max-width: 414px) {
+  #header {
+    top: 10%; }
+
+  #section1 {
+    margin-left: -173px;
+    width: 346px; }
+    #section1 .form {
+      width: 100%; }
+      #section1 .form .uid, #section1 .form .pwd {
+        margin-bottom: 2%;
+        width: 100%;
+        height: 50px;
+        border: 1px solid #979797; }
+    #section1 .section1_text {
+      font-size: 0.75rem; }
+      #section1 .section1_text .continue {
+        width: 31%; }
+        #section1 .section1_text .continue p {
+          margin-top: 3%; }
+    #section1 .section1_btn {
+      justify-content: space-between; }
+      #section1 .section1_btn .loginBtn {
+        width: 150px; }
+      #section1 .section1_btn .memJoinBtn {
+        width: 150px; }
+
+  #section2 {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    width: 346px;
+    margin-left: -173px; }
+    #section2 img {
+      width: 346px; } }
+
+/*# sourceMappingURL=login.css.map */

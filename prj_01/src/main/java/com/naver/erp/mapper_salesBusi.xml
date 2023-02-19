@@ -1,0 +1,794 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.naver.erp.SalesDAO">
+
+	<!-- *********************************************************************** -->
+	<!-- 첫 영업보고서 등록  -->
+	<!-- *********************************************************************** -->
+	<insert id="first_insertSalesReport" parameterType="com.naver.erp.SalesDTO">
+        insert into sales_report(
+            report_no
+            ,report_code
+            ,report_name
+            ,sales_type_code
+            ,sales_date_start
+            ,sales_date_end
+            ,sales_content
+            ,sales_result
+            ,emp_no
+            ,revise_cnt
+            ,sales_company
+            ,sales_name
+            ,sales_jikup
+            ,sales_phone
+        )values(
+            (select nvl(max(report_no),0)+1 from sales_report)
+            ,2
+            ,#{report_name}
+            ,${sales_type_code}
+            ,to_date(#{sales_date_start},'YYYY-MM-DD-HH24:MI')
+            ,to_date(#{sales_date_end},'YYYY-MM-DD-HH24:MI')
+            ,#{sales_content}
+            ,#{sales_result}
+            ,${emp_no}
+            ,0 
+            ,#{sales_company} 
+            ,#{sales_name}
+            ,#{sales_jikup}
+            ,#{sales_phone}
+		)		
+	</insert>
+	
+	<!-- *********************************************************************** -->
+	<!-- 첫 업무보고서 등록시 다음결제자를 등록   -->
+	<!-- *********************************************************************** -->	
+	<insert id="first_insertSignFinishReport_Sign_emp" parameterType="com.naver.erp.SalesDTO">
+		insert into sign_finish_report(
+		    sign_finish_no
+		    ,emp_no
+		    ,report_code
+		    ,report_no
+		    ,sign_code
+		    ,sign_date
+		    ,return_no
+		)values(
+		    (select nvl(max(sign_finish_no),0)+1 from sign_finish_report)
+		    ,#{next_app_emp_no}
+		    ,2
+		    ,(select max(report_no) from sales_report where emp_no=${emp_no})
+		    ,-1
+		    ,sysdate
+		    ,0
+		)		
+	</insert>
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 선택한 업무보고서 상세정보를 담아오기  --> 
+	<!-- *********************************************************************** -->	
+	<select id="getBoard" parameterType="java.util.HashMap" resultType="com.naver.erp.SalesDTO">
+        select
+            (select emp_name from employee where emp_no=s.emp_no and s.report_no=${report_no})                                                                   as "emp_name"
+            ,(select sales_type_name from code_sales_type where sales_type_code = s.sales_type_code )                                                             as "sales_type_name"
+            ,s.sales_type_code                                                           as "sales_type_code"
+            ,s.sales_content                                                                                                                                        as "sales_content"
+            ,to_char(s.sales_date_start,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')                                                                      as "sales_date_start"
+            ,to_char(s.sales_date_end,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')                                                                         as "sales_date_end"
+            ,s.revise_cnt                                                                                                                                        as  "revise_cnt" 
+            ,s.emp_no                                                                                                                                            as     "emp_no"
+            ,s.report_no                                                                                                                                        as "report_no"
+            ,s.report_code                                                                                                                                        as "report_code" 
+            ,s.report_name                                                                                                                                        as "report_name" 
+            ,s.sales_result                                                                                                                                        as "sales_result"
+            ,s.sales_company                                                                                                                                        as "sales_company"
+            ,s.sales_name                                                                                                                                        as "sales_name"
+            ,s.sales_jikup                                                                                                                                        as "sales_jikup"
+            ,s.sales_phone                                                                                                                                        as "sales_phone"
+            ,(select sign_code from sign_finish_report where report_no=${report_no} and emp_no=${emp_no2} and report_code=2)                        as "sign_code"
+            ,(select dep_name from code_dept cd,employee e where cd.dep_no=e.dep_no and s.emp_no = e.emp_no )                                                     as "dep_name"
+            ,(select jikup_name from code_jikup cj,employee e where cj.jikup_code=e.jikup_code and s.emp_no = e.emp_no )                                          as "jikup_name"
+        from
+            sales_report s
+        where 
+            report_no=${report_no}				
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 최종 결제자의 정보를 얻어오기      -->
+	<!-- *********************************************************************** -->
+	<select id="getlastAppMan" parameterType="com.naver.erp.SalesSearchDTO" resultType="java.util.HashMap">
+		select
+		    to_char(sign_finish_no)															as "last_sign_finish_no"		
+		    ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')		as "last_sign_date"
+		    ,to_char(sign_code)																as "last_sign_code"
+		    ,to_char(emp_no)																as "last_emp_no"
+		from
+		    sign_finish_report
+		where
+            sign_finish_no = (select max(sign_finish_no) from sign_finish_report where report_no=${report_no} and report_code=2)
+	</select>	
+	
+
+
+	<!-- ** -->
+    <!-- 첫 결재자 입장에서 다음 결제자의 정보를 얻어오기      000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000-->
+    <!-- ** -->
+    <select id="getNextAppMan" parameterType="string" resultType="java.util.HashMap">
+        select
+            to_char(sign_finish_no)                                                            as "next_sign_finish_no"
+            ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')        as "next_sign_date"
+            ,to_char(sign_code)                                                                as "next_sign_code"
+            ,to_char(emp_no)                                                                as "next_emp_no"
+        from
+            sign_finish_report 
+        where
+            sign_finish_no = (select min(sign_finish_no) from sign_finish_report where report_no=${report_no} and report_code=2)
+    </select>
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 만약 첫결재자 라면 바로 앞 결재자의 시간을 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="first_app_getSign_date" parameterType="com.naver.erp.SalesSearchDTO" resultType="string">
+		 select 
+            to_char(min(sign_date),'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')            as     "next_app_getSign_date" 
+        from 
+            sign_finish_report
+        where
+            report_no = ${report_no}
+            and 
+            report_code = 2
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 다음결제자의 결제시간을 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="next_app_getSign_date" parameterType="com.naver.erp.SalesSearchDTO" resultType="string">
+		 select 
+            to_char(min(sign_date),'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')            as     "next_app_getSign_date" 
+        from 
+            sign_finish_report
+        where
+            sign_finish_no &gt; (select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=2)
+            and 
+            report_no = ${report_no}
+            and
+            report_code = 2
+	</select>
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 업무보고서 목록 얻어올때 결제자의 결제 상태 얻어오기 -->
+	<!-- *********************************************************************** -->
+	<select id="getSign_code" parameterType="com.naver.erp.SalesSearchDTO" resultType="string">
+		select 
+            min(sign_code)			as 	"sign_code" 
+        from 
+            sign_finish_report
+        where
+        	report_no = ${report_no}
+            and 
+            emp_no = ${emp_no}
+            and
+            report_code = 2
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 만약 다음결제자의 사인코드가 비어있다면 다음결제자의 사인코드 얻어오기  -->
+	<!-- *********************************************************************** -->
+	<select id="next_app_getSign_code" parameterType="com.naver.erp.SalesSearchDTO" resultType="string">
+		select 
+		    min(sign_code)            as     "sign_code" 
+		from 
+		    sign_finish_report
+		where
+		    report_no = (select report_no from sales_report where emp_no=${emp_no} and report_no=${report_no})
+		    and
+		    report_code = 2
+	</select>
+			
+	<!-- *********************************************************************** -->
+	<!-- 결제성공시 사인코드를 0 으로 업데이트 하기  -->
+	<!-- *********************************************************************** -->
+	<update id="updateSignCode" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = 0
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+	
+	<!-- *********************************************************************** -->
+	<!-- ========      -->
+	<!-- *********************************************************************** -->
+	<select id="getNextSign_finish_report" parameterType="com.naver.erp.SalesDTO" resultType="java.util.HashMap">
+		select  
+              to_char(emp_no)		"emp_no"
+        from
+          sign_finish_report
+       	where 
+        sign_finish_no = ( select
+							    min(sign_finish_no)          
+							from
+							    sign_finish_report
+							where
+					            sign_finish_no &gt; (select sign_finish_no from sign_finish_report where report_no=${report_no} and emp_no=${emp_no} and report_code=2) and report_code=2 and report_no=${report_no})
+        and
+        report_no=${report_no}
+        and
+        report_code=2
+
+	</select>
+	
+	<!-- *********************************************************************** -->
+	<!-- 결제성공시 다음결제자의 정보를 입력 하기  -->
+	<!-- *********************************************************************** -->	
+	<insert id="new_insertSignFinishReport_Sign_emp" parameterType="com.naver.erp.SalesDTO">
+		insert into sign_finish_report(
+		    sign_finish_no
+		    ,emp_no
+		    ,report_code
+		    ,report_no
+		    ,sign_code
+		    ,sign_date
+		    ,return_no
+		)values(
+		    (select nvl(max(sign_finish_no),0)+1 from sign_finish_report)
+		    ,#{next_app_emp_no}
+		    ,2
+		    ,(select sign_finish_no from sign_finish_report where sign_finish_no = #{report_no})
+		    ,-1
+		    ,sysdate
+		    ,0
+		)		
+	</insert>	
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alter_Next_App_Sign_Code" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = -1
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code =2
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alter_Next_App_Sign_Date" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = sysdate
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code =2
+	</update>
+		
+	<!-- *********************************************************************** -->
+	<!-- 다음 결재자 없으면 현 결재자의 시간을 업데이트 하기   -->	
+	<!-- *********************************************************************** -->
+	<update id="app_setTime" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = sysdate
+		where
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+
+	<!-- *********************************************************************** -->
+	<!-- 반려시 사인코드를 1 로 업데이트 하기  -->
+	<!-- *********************************************************************** -->
+	<update id="updateSignCodeMinus" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = 1
+		where
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+			
+	<!-- *********************************************************************** -->
+	<!-- 반려시 반려사유테이블에 반려사유 저장하기   -->
+	<!-- *********************************************************************** -->
+	<insert id="insertReturnReport" parameterType="com.naver.erp.SalesDTO">
+		insert into return_report(
+			sfr_no
+			,return_result
+		)values(
+			(select (sign_finish_no) from sign_finish_report where report_no=#{report_no} and emp_no=#{emp_no} and report_code=2 )
+			,#{return_result}
+		)		
+	</insert>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 컨텐츠내용 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterSalesContent" parameterType="com.naver.erp.SalesDTO">
+		update
+			sales_report
+		set
+			sales_content = #{sales_content}
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 컨텐츠내용 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterSalesResult" parameterType="com.naver.erp.SalesDTO">
+		update
+			sales_report
+		set
+			sales_result = #{sales_result}
+		where
+			emp_no = #{emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ====== -->
+	<!-- *********************************************************************** -->
+	<update id="alterDeleteSignDate" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_date = null
+		where
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- 들어온 번호를 통해 다음결제자 사인코드 업데이트 하는 메소드 선언  -->
+	<!-- *********************************************************************** -->
+	<update id="alterNextAppUpdateSignCode" parameterType="com.naver.erp.SalesDTO">
+		update
+			sign_finish_report
+		set
+			sign_code = -1
+			,
+			sign_date = sysdate
+		where
+			emp_no = #{next_app_emp_no}
+			and
+			report_no = #{report_no}
+			and
+			report_code = 2
+	</update>
+	
+	
+	
+	
+	<!-- 6666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666 -->
+	
+	
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 로그인한 사람의 다음 결제자의 정보를 얻어오기      -->
+	<!-- *********************************************************************** -->
+	<select id="getLogin_NextAppMan" parameterType="com.naver.erp.SalesDTO" resultType="java.util.HashMap">
+		select
+		    to_char(sign_finish_no)															as "next_sign_finish_no"		
+		    ,to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')		as "next_sign_date"
+		    ,to_char(sign_code)																as "next_sign_code"
+		    ,to_char(emp_no)																as "next_emp_no"
+		from
+		    sign_finish_report
+		where
+            sign_finish_no = (select min(sign_finish_no) from sign_finish_report where report_no=${report_no}and report_code=2)
+
+	</select>
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 등록화면에  다음결재자 목록 검색하는 쿼리 -->
+	<!-- *********************************************************************** -->	
+	<select id="get_next_app_list" parameterType="com.naver.erp.SalesDTO" resultType="com.naver.erp.Next_App_Emp_List"> 
+		select 
+				e.emp_no "emp_no"
+				,e.emp_name "emp_name"
+				,c.jikup_name "jikup_name"
+				,(select d.dep_name from code_dept d where e.dep_no = d.dep_no) "dep_name"
+		from 
+				employee e, code_jikup c
+		where
+		    1=1
+		    and e.jikup_code = c.jikup_code
+		    and e.jikup_code  &lt; (select jikup_code from employee where emp_no = ${emp_no})
+		order by
+		    dep_no ,
+			decode(c.jikup_name,'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,'사장',1) desc
+
+	</select>
+	
+	
+	
+	
+	
+	<!-- *********************************************************************** -->
+	<!-- 등록화면에  다음결재자 목록 검색하는 쿼리 -->
+	<!-- *********************************************************************** -->	
+	<select id="get_next_app_list2" parameterType="int" resultType="com.naver.erp.Next_App_Emp_List"> 
+		select 
+				e.emp_no "emp_no"
+				,e.emp_name "emp_name"
+				,c.jikup_name "jikup_name"
+				,(select d.dep_name from code_dept d where e.dep_no = d.dep_no) "dep_name"
+		from 
+				employee e, code_jikup c
+		where
+		    1=1
+		    and e.jikup_code = c.jikup_code
+		    and e.jikup_code  &lt; (select jikup_code from employee where emp_no = ${emp_no})
+		order by
+		    dep_no ,
+			decode(c.jikup_name,'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,'사장',1) desc
+
+	</select>
+	
+	
+	
+	
+	
+	
+	<!-- **************************************************************************** -->
+	<!--  영업업무보고서  목록 총 개수 구하는 select 구문이 내포된 select 태그 선언--> 
+	<!-- **************************************************************************** -->
+	<select id="getsalesListAllTotCnt"   parameterType="com.naver.erp.SalesSearchDTO" resultType="int"> 
+			select count(*)
+			
+			from sales_report s
+			
+			where
+        	(
+	        	s.emp_no = #{emp_no}
+	        	or
+	        	s.report_no in(select report_no from sign_finish_report where emp_no=#{emp_no} and report_code='2')
+	        )
+			and 
+				report_code='2'
+	</select>
+	
+	
+	<!-- **************************************************************************** -->
+	<!--  검색된 영업업무보고서 목록 총 개수 구하는 select 구문이 내포된 select 태그 선언--> 
+	<!-- **************************************************************************** -->
+	<select id="getsalesListTotCnt" parameterType="com.naver.erp.SalesSearchDTO" resultType="int"> 
+			select count(*)
+			
+			from 
+				sales_report s
+        	where
+	            1=1
+	        	  <include refid="salesWhere"></include>  
+	        	<if test="emp_no!=null">
+	        	and
+	        	(
+		        	s.emp_no = #{emp_no}
+		        	or
+		        	s.report_no in(select report_no from sign_finish_report where emp_no=#{emp_no} and report_code='2')
+		        )
+		        and 
+		        	report_code='2'
+	            </if>
+	           
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<sql id="salesWhere">
+				
+				<if test="(keyword!=null and keyword.length()>0)">
+					and 
+					(
+						upper( (select emp_name from employee where emp_no=s.emp_no)) like upper('%${keyword}%')
+						or
+						upper(report_name) like upper('%${keyword}%')
+					)
+				</if>
+				
+
+			 	 <if test="sales_type!=null">
+					<foreach collection="sales_type" item="xxx" open="and (" close=")" separator="or">
+							#{xxx} = (select sales_type_code from  code_sales_type where sales_type_code = s.sales_type_code)
+					</foreach> 
+				</if>
+				
+				
+				 <if test="sign_code!=null">
+					<foreach collection="sign_code" item="xxx" open="and (" close=")" separator="or">
+						
+						#{xxx} =  ( select  sign_code from sign_finish_report where report_no = s.report_no and emp_no = #{emp_no} and report_code=2 )
+					</foreach>  
+					
+					
+					<foreach collection="sign_code" item="xxx" open="or (" close=")" separator="or">
+						
+						#{xxx} =  ( select  min(sign_code) from sign_finish_report where report_no = s.report_no and s.emp_no = #{emp_no} and report_code=2 )
+					</foreach> 
+					
+					
+				</if>    
+				 
+				
+				
+				
+				<if test="min_year_month!=null and min_year_month.length>0">
+					and sales_date_start &gt;= to_date( #{min_year_month} ,'YYYY-MM-DD' )
+				</if>
+				
+				<if test="max_year_month!=null and max_year_month.length>0">
+					and sales_date_end &lt;= to_date( #{max_year_month} ,'YYYY-MM-DD' ) 
+				</if> 
+				
+				
+				
+				
+				  		
+				<if test="sign_min_year_month!=null and sign_min_year_month.length>0">
+				    and to_number ( to_char(sales_date_start, 'HH24MI')  ) &gt;=  to_number( #{sign_min_year_month} )
+					<!-- and busi_start_date &gt;= to_date( #{min_hour_minute} ,'HH24:MI' ) -->
+				</if>
+				
+				<if test="sign_max_year_month!=null and sign_max_year_month.length>0">  <!-- $$$$$$$$$$$$$$$$$$$$$수정부분 -->
+				    and to_number ( to_char(sales_date_end, 'HH24MI')  ) &lt;=  to_number( #{sign_max_year_month} )
+					<!-- and busi_end_date &lt;= to_date( #{max_hour_minute} ,'HH24:MI' )  -->
+				</if> 
+				
+				
+				<!-- 
+				<if test="sign_min_year_month!=null and sign_min_year_month.length>0">
+				    and to_number ( to_char(#{last_sign_date}, 'YYYY-MM-DD')  ) &gt;=  to_number( #{sign_min_year_month} )
+					and last_sign_date &gt;= to_date( #{sign_min_year_month} ,'HH24:MI' )
+				</if>
+				
+				<if test="max_year_month!=null and max_year_month.length>0">
+				    and to_number ( to_char(#{last_sign_date}, 'YYYY-MM-DD')  ) &lt;=  to_number( #{sign_max_year_month} )
+					and last_sign_date &lt;= to_date( #{sign_max_year_month} ,'HH24:MI' ) 
+				</if> 
+		 -->
+				
+				
+				
+	</sql>
+	
+	<!-- *********************************************************************** -->
+	<!-- 업무보고서 리스트를 받아오기     -->
+	<!-- *********************************************************************** -->		
+	<select id="getSalesList" parameterType="com.naver.erp.SalesSearchDTO" resultType="java.util.HashMap">
+	
+	
+	select * from ( select  rownum RNUM, zxcvb.* from  (
+				select 
+		            report_no||''																					as  "report_no"
+		            ,(select emp_name from employee where emp_no=s.emp_no)											as  "emp_name"
+		            ,report_name																					as  "report_name"
+		            ,(select sales_type_name from code_sales_type where sales_type_code=s.sales_type_code)			as  "sales_type_name"           
+		            ,to_char(sales_date_start,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')					as  "sales_date_start"
+		            ,to_char(sales_date_end,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')					as  "sales_date_end"
+		            ,emp_no																							as	"emp_no"
+		            ,report_code||''																				as	"report_code"
+		            ,revise_cnt||''																					as  "revise_cnt" 
+		        from 
+		            sales_report s
+		        where
+		            1=1
+		        	  <include refid="salesWhere"></include>  
+		        	<if test="emp_no!=null">
+		        	and
+		        	(
+			        	s.emp_no = ${emp_no}
+			        	or
+			        	s.report_code in(select report_code from sign_finish_report where emp_no=${emp_no})
+			        	and
+			        	s.report_no in(select report_no from sign_finish_report where emp_no=${emp_no}and report_code=2)
+			        )
+		            </if>
+		            order by
+						s.report_no desc
+		            
+		            
+	) zxcvb) where  RNUM &gt;=#{begin_rowNo} and RNUM &lt;=#{end_rowNo} 
+		            
+	
+	
+	
+	
+	</select>
+	
+	
+	
+	
+	
+				
+	<!-- *********************************************************************** -->
+	<!-- ======진성 -->
+	<!-- *********************************************************************** -->
+	<update id="alterDeleteReturnReport" parameterType="com.naver.erp.SalesDTO">
+		update
+			return_report
+		set
+			return_result = null
+		where
+			sfr_no in(select sign_finish_no from sign_finish_report where report_no=${report_no} and report_code=2)
+	</update>
+	
+		
+	<!-- *********************************************************************** 
+	결제 리스트를 받아오기    
+	***********************************************************************	 -->
+	<select id="getAppList" parameterType="com.naver.erp.SalesDTO" resultType="java.util.HashMap">
+        select
+       	 	e.emp_name                                                      as "app_emp_name"
+        	,(select dep_name from code_dept where dep_no = e.dep_no)       as "app_dep_name"
+        	,(select jikup_name from code_jikup where jikup_code = e.jikup_code) as "app_jikup_name"
+        	,decode(sf.sign_code,-1,'미결재',0,'결재','반려')                  as "app_sign_name" 
+        	,(select return_result from return_report where sfr_no = sf.sign_finish_no ) as "app_return_result" 
+        	,sf.report_code													as "report_code"
+        	,sf.report_no													as "report_no" 
+        	,sf.emp_no														as "emp_no" 
+      from
+        	sign_finish_report sf,employee e
+      where
+        	sf.emp_no = e.emp_no
+        	and
+        	report_no = ${report_no}
+        	and
+        	report_code = 2
+      order by
+          	decode((select jikup_name from code_jikup where jikup_code = e.jikup_code),'사원',6,'대리',5,'과장',4,'차장',3,'부장',2,1) desc
+	</select>
+	
+	
+	
+			
+	<!-- *********************************************************************** -->
+	<!-- ***************************진성 --> 
+	<!-- *********************************************************************** -->	
+	<select id="next_appList_getSign_date" parameterType="java.util.HashMap" resultType="string">
+		select 
+           to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')
+        from
+            sign_finish_report
+        where
+            sign_finish_no = (
+            select 
+                min(sign_finish_no)
+            from 
+                sign_finish_report 
+            where sign_finish_no &gt;
+            (select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=2 ) and report_no = ${report_no} and report_code = 2)
+            and
+            report_no = ${report_no}
+            and
+            report_code = 2	
+	</select>
+		
+	<!-- *********************************************************************** -->
+	<!-- ***************************진성 --> 
+	<!-- *********************************************************************** -->	
+	<select id="my_appList_getSign_date" parameterType="java.util.HashMap" resultType="string">
+		select 
+		   to_char(sign_date,'YYYY-MM-DD HH24:MI DY','NLS_DATE_LANGUAGE = KOREAN')
+		from
+		    sign_finish_report
+		where
+			emp_no=${emp_no} 
+			and 
+			report_no=${report_no} 
+			and report_code=2				
+	</select>
+	
+	<!-- ** -->
+    <!-- **=====**======*=====**========== --> 
+    <!-- ** -->
+    <select id="nextAppManEmp_no" parameterType="java.util.HashMap" resultType="string">
+         select 
+           emp_no||''    as "emp_no"
+        from
+            sign_finish_report
+        where
+            sign_finish_no = 
+            (select min(sign_finish_no) from sign_finish_report where sign_finish_no>(select sign_finish_no from sign_finish_report where emp_no=${emp_no} and report_no=${report_no} and report_code=2) and report_code=2 and report_no=${report_no})
+
+    </select>
+		
+		
+		
+		
+		
+		
+		
+		
+		
+	<!-- *********************************************************************** -->
+	<!-- **************************++ --> 
+	<!-- *********************************************************************** -->	
+	<select id="haveOrNoneReturn_report" parameterType="com.naver.erp.SalesDTO" resultType="int">
+		select count(*) from return_report where sfr_no = (select sign_finish_no from sign_finish_report where emp_no = ${emp_no} and report_no =${report_no} and report_code=2)				
+	</select>
+	
+	
+	
+				
+	<!-- *********************************************************************** -->
+	<!-- ======진성 -->
+	<!-- *********************************************************************** -->
+	<update id="insertReturnResult" parameterType="com.naver.erp.SalesDTO">
+		update
+			return_report
+		set
+			return_result = #{return_result}
+		where
+			sfr_no in(select sign_finish_no from sign_finish_report where report_no=${report_no} and report_code=2 and emp_no = ${emp_no})
+	</update>
+	
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
